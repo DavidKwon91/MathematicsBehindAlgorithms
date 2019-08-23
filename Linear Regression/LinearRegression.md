@@ -209,10 +209,12 @@ Investigating Linear Regression
 Coefficients - Beta Hat
 --------------
 
+Beta Hat = inverse(t(X) * X) * t(X) * y
+
 ```r
 #Matrix of predictors
 X<-model.matrix(mpg~., mtcars1)
-#Coefficients
+#Coefficients 
 beta <- solve(t(X) %*% X) %*% (t(X) %*% mtcars1$mpg)
 beta
 ```
@@ -308,6 +310,11 @@ predict(lm1)
 
 Standard Error for coefficients
 ---------------------
+Beta hat = inverse(t(X) * X) * t(X) * y
+
+Var(Beta hat) = inverse(t(X) * X) * t(X) * sigma^2 * I * X * inverse(t(X) * X)
+              = sigma^2 * inverse(t(X) * X)
+              where sigma^2 = MSE in anova table
 
 
 ```r
@@ -392,10 +399,19 @@ summary(lm1)[["coefficients"]][,"Std. Error"]
 
 t-value
 ----------------
+Test: 
+
+Null H0 : Beta1 = 0 
+against,
+Alt HA : Beta1 != 0
+
+t-statistic = (Beta1 hat - Beta1(=0)) / se(Beta1 hat)
+
+
 
 ```r
 #t-value = beta / se
-beta / se
+(beta - 0)/ se
 ```
 
 ```
@@ -446,6 +462,13 @@ summary(lm1)[["coefficients"]][, "Pr(>|t|)"]
 confidence interval for coefficients
 ----------------
 
+Confidence Interval for Coefficients.. 
+
+Beta hat +/- se(Beta hat) * t(alpha/2, n-p-1)
+
+where t(alpha/2, n-p-1) is the 100(1-alpha/2)th quantile of the t-distribution with n-(p+1) degrees of freedom. 
+
+
 ```r
 #confidence interval for each coef
 confint(lm1)
@@ -492,6 +515,9 @@ confint(lm1)
 
 Residual Standard Error
 -------------
+
+error = y-yhat
+Residual Sum of Squared = sqrt(sum((y-yhat)^2)/(n-(p+1)))
 
 ```r
 #first appraoch from predicted values
@@ -565,6 +591,18 @@ RSS
 
 R squared - Explained variability of response variable
 --------------
+From,
+
+SST = SSR + RSS, 
+where SST = sum of squared of Y
+      SSR = sum of squared of regressor
+      RSS = residual of sum of squared
+      
+1 = SSR/SST + RSS/SST
+R Squared = SSR/SST = 1-RSS/SST
+
+If we have one predictor, then R Squared = (correlation y and x)^2
+
 
 ```r
 #R^2 = 1 - RSS/SST, here SST = SYY

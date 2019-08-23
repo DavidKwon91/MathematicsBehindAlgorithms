@@ -507,9 +507,10 @@ summary(lm1)</code></pre>
 <h1>Investigating Linear Regression</h1>
 <div id="coefficients---beta-hat" class="section level2">
 <h2>Coefficients - Beta Hat</h2>
+<p>Beta Hat = inverse(t(X) * X) * t(X) * y</p>
 <pre class="r"><code>#Matrix of predictors
 X&lt;-model.matrix(mpg~., mtcars1)
-#Coefficients
+#Coefficients 
 beta &lt;- solve(t(X) %*% X) %*% (t(X) %*% mtcars1$mpg)
 beta</code></pre>
 <pre><code>##                   [,1]
@@ -582,6 +583,8 @@ X %*% beta #This is fitted values</code></pre>
 </div>
 <div id="standard-error-for-coefficients" class="section level2">
 <h2>Standard Error for coefficients</h2>
+<p>Beta hat = inverse(t(X) * X) * t(X) * y</p>
+<p>Var(Beta hat) = inverse(t(X) * X) * t(X) * sigma^2 * I * X * inverse(t(X) * X) = sigma^2 * inverse(t(X) * X) where sigma^2 = MSE in anova table</p>
 <pre class="r"><code>#First approach from the results of our model
 vcov(lm1) #variance-covariance matrix</code></pre>
 <pre><code>##             (Intercept)       drat        qsec        gear       carb
@@ -622,8 +625,11 @@ se</code></pre>
 </div>
 <div id="t-value" class="section level2">
 <h2>t-value</h2>
+<p>Test:</p>
+<p>Null H0 : Beta1 = 0 against, Alt HA : Beta1 != 0</p>
+<p>t-statistic = (Beta1 hat - Beta1(=0)) / se(Beta1 hat)</p>
 <pre class="r"><code>#t-value = beta / se
-beta / se</code></pre>
+(beta - 0)/ se</code></pre>
 <pre><code>##                   [,1]
 ## (Intercept) -0.7276666
 ## drat         2.2286192
@@ -651,6 +657,9 @@ pvalue</code></pre>
 </div>
 <div id="confidence-interval-for-coefficients" class="section level2">
 <h2>confidence interval for coefficients</h2>
+<p>Confidence Interval for Coefficients..</p>
+<p>Beta hat +/- se(Beta hat) * t(alpha/2, n-p-1)</p>
+<p>where t(alpha/2, n-p-1) is the 100(1-alpha/2)th quantile of the t-distribution with n-(p+1) degrees of freedom.</p>
 <pre class="r"><code>#confidence interval for each coef
 confint(lm1)</code></pre>
 <pre><code>##                   2.5 %    97.5 %
@@ -680,6 +689,7 @@ beta.conf</code></pre>
 </div>
 <div id="residual-standard-error" class="section level2">
 <h2>Residual Standard Error</h2>
+<p>error = y-yhat Residual Sum of Squared = sqrt(sum((y-yhat)^2)/(n-(p+1)))</p>
 <pre class="r"><code>#first appraoch from predicted values
 
 p &lt;- length(lm1$coefficients)-1 # number of predictors except for intercept
@@ -727,6 +737,10 @@ RSS</code></pre>
 </div>
 <div id="r-squared---explained-variability-of-response-variable" class="section level2">
 <h2>R squared - Explained variability of response variable</h2>
+<p>From,</p>
+<p>SST = SSR + RSS, where SST = sum of squared of Y SSR = sum of squared of regressor RSS = residual of sum of squared</p>
+<p>1 = SSR/SST + RSS/SST R Squared = SSR/SST = 1-RSS/SST</p>
+<p>If we have one predictor, then R Squared = (correlation y and x)^2</p>
 <pre class="r"><code>#R^2 = 1 - RSS/SST, here SST = SYY
 SYY &lt;- sum((mtcars$mpg - mean(mtcars$mpg))^2)
 RSS2</code></pre>
