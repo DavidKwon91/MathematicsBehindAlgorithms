@@ -1,0 +1,359 @@
+---
+title: "Linear Regression"
+author: "Yongbock (David) Kwon"
+output:
+  html_document:
+    keep_md: true
+  html_notebook: default
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+
+```{r}
+library(dplyr)
+library(car)
+
+mtcars %>% head
+#vs : V-shaped Engine = 0, straight = 1
+#am : Transmission : automatic = 0, manual = 1
+
+#Lets remove cateogrical since we are going to deal with only continuous variables
+mtcars <- mtcars %>% subset(select = -c(vs, am))
+
+base.lm <- lm(mpg~., mtcars)
+summary(base.lm)
+par(mfrow=c(2,2))
+plot(base.lm)
+par(mfrow=c(1,1))
+
+vif(base.lm)
+
+cor(mtcars)
+#disp, cyl, wt, hp removed by multicollinearity, which will be discussed below. 
+
+mtcars1 <- mtcars %>% subset(select = -c(disp, cyl, wt, hp))
+
+lm1 <- lm(mpg~.,mtcars1)
+vif(lm1)
+
+par(mfrow=c(2,2))
+plot(lm1)
+par(mfrow=c(1,1))
+
+summary(lm1)
+
+```
+
+Investigating Linear Regression
+===============
+
+Coefficients - Beta Hat
+--------------
+```{r}
+#Matrix of predictors
+X<-model.matrix(mpg~., mtcars1)
+#Coefficients
+beta <- solve(t(X) %*% X) %*% (t(X) %*% mtcars1$mpg)
+beta
+coef(lm1)
+
+#fitted values
+X %*% beta #This is fitted values
+predict(lm1)
+
+
+```
+
+
+Standard Error for coefficients
+---------------------
+
+```{r}
+
+#First approach from the results of our model
+vcov(lm1) #variance-covariance matrix
+sqrt(diag(vcov(lm1))) #Std.Error for Beta hat
+
+
+#Second approach
+solve(t(X) %*% X) #inverse of X'X 
+
+anova(lm1)[[3]][5] #RSS^2 = Mean of Sum of Squared of Residuals
+
+solve(t(X) %*% X)*anova(lm1)[[3]][5] #variance-covariance
+
+inv.XX <- solve(t(X) %*% X) #inverse of X'X
+
+se <- sqrt(diag(inv.XX)*anova(lm1)[[3]][5]) #Std.error for coefficients
+se
+
+summary(lm1)[["coefficients"]][,"Std. Error"]
+```
+
+
+t-value
+----------------
+```{r}
+#t-value = beta / se
+beta / se
+summary(lm1)[["coefficients"]][,"t value"]
+
+```
+
+p-value
+----------------
+```{r}
+#P-value from t distribution, degrees of freedom = n-p+1, where p is # of predictors, n = 32, p = 7
+
+tvalue <- summary(lm1)[["coefficients"]][, "t value"]
+
+#p value
+pvalue <- sapply(tvalue, function(x){pt(-abs(x), df=(nrow(mtcars1)-dim(mtcars1)[2]), lower.tail=TRUE)*2})
+pvalue
+
+summary(lm1)[["coefficients"]][, "Pr(>|t|)"]
+
+```
+
+confidence interval for coefficients
+----------------
+```{r}
+#confidence interval for each coef
+confint(lm1)
+
+#confidence interval
+beta.conf <- data.frame("2.5%" = beta - se*(-qt(0.025,nrow(mtcars1)-dim(mtcars1)[2])),
+               "97.5%" = beta + se*(-qt(0.025,nrow(mtcars1)-dim(mtcars1)[2])))
+colnames(beta.conf) <- c("lower 2.5%", "upper 97.5%")
+beta.conf
+
+confint(lm1)
+
+```
+
+Residual Standard Error
+-------------
+```{r}
+#first appraoch from predicted values
+
+p <- length(lm1$coefficients)-1 # number of predictors except for intercept
+n <- length(lm1$residuals) # number of obs or resid
+
+beta.pred <- X %*% beta 
+predict(lm1)
+
+error <- with(mtcars1, mpg-predict(lm1)) #y - yhat
+RSS2 <- with(mtcars1, error^2) #squared (y - yhat)
+
+sum(RSS2) #sum of squared (y - yhat)
+RSS <- sqrt(sum(RSS2)/(n-(p+1)))  #sqrt of sum of squared (y - yhat) = RSS
+RSS
+
+#second approach from results of our model
+RSS2 <- sum(lm1$residuals**2) #sum of square residuals
+df <- n-(p+1) #degrees of freedom adding 1
+
+RSS <- sqrt(RSS2 / df)
+RSS
+```
+
+
+
+R squared - Explained variability of response variable
+--------------
+```{r}
+#R^2 = 1 - RSS/SST, here SST = SYY
+SYY <- sum((mtcars$mpg - mean(mtcars$mpg))^2)
+RSS2
+
+#R^2
+R2<-1-(RSS2/SYY)
+R2
+
+summary(lm1)$r.squared
+```
+
+Adjusted R squared - for multiple variables
+-----------------
+```{r}
+#Adjusted R Squared are normalized R Squared by taking into account how many samples and how many variables are used. 
+adj.R2 <- 1-(RSS2/SYY)*(n-1)/(n-(p+1))
+adj.R2
+
+summary(lm1)$adj.r.squared
+
+```
+
+
+F Statistics
+---------------
+```{r}
+#It's investigating the hypothesis; at least one of coefficients is not zero
+((SYY - RSS2)/p) / (RSS2/(n-(p+1)))
+
+summary(lm1)$fstatistic[1]
+```
+
+p value - F Statistics
+---------------
+```{r}
+fvalue <- ((SYY - RSS2)/p) / (RSS2/(n-(p+1)))
+fvalue
+
+#P-value for F statistics
+pf(fvalue, p, n-(p+1), lower.tail=FALSE)
+
+summary(lm1)
+```
+
+
+Assumptions of Linear Regression
+=================
+
+1. Outliers
+2. Normality of Residuals
+3. Multicollinearity
+4. Homoscedasticity (Non-Constant Variance of Residuals)
+
+
+1. Outliers
+-----------------
+```{r}
+
+#Sqrt(standardized residuals) > 2 or < -2 by influence
+o1<-which(rstandard(lm1, infl = lm.influence(lm1, do.coef = FALSE),
+          sd = sqrt(deviance(lm1)/df.residual(lm1)),
+          type=c("sd.1", "predictive"))>2)
+
+o2<-which(rstandard(lm1, infl = lm.influence(lm1, do.coef = FALSE),
+          sd = sqrt(deviance(lm1)/df.residual(lm1)),
+          type=c("sd.1", "predictive"))<(-2))
+
+outliers <- c(o1, o2)
+length(outliers)
+
+out.mtcars1 <- mtcars1[-outliers,]
+
+lm2 <- lm(mpg~., out.mtcars1)
+summary(lm2)
+#much improved by removing only 2 outliers
+
+par(mfrow=c(2,2))
+plot(lm2)
+par(mfrow=c(1,1))
+```
+
+
+2. Normality of Residuals
+--------------------
+```{r}
+library(e1071) #skewness / kurtosis
+densityPlot(lm2$residuals)
+skewness(lm2$residuals) #we would say this is not normal
+kurtosis(lm2$residuals) #well?
+shapiro.test(lm2$residuals) #P-value > 0.05, then it's normal distribution
+
+```
+
+
+3. Multicollinearity 
+-------------------
+```{r}
+#I actually remove those predictors that have correlation each other predictors,
+#which have collinearity. 
+
+library(Matrix)
+out.mtcars1 %>% dim
+mat <- model.matrix(mpg~., out.mtcars1)
+rankMatrix(mat)[1] #full rank of our predictors matrix
+
+vif(lm2)
+#common cutoff is 5, so it's safe
+
+
+#Calculation of VIf for drat
+drat.r2 <- lm(drat~.-mpg, out.mtcars1)
+summary(drat.r2)$r.squared
+
+#VIF = 1/(1-R^2), here the R^2 is the R squared value when the predictor fitted by the other predictors
+1/(1-summary(drat.r2)$r.squared)
+```
+
+
+4. Heteroscedasticity
+-------------------
+```{r}
+
+par(mfrow=c(2,2))
+plot(lm2)
+par(mfrow=c(1,1))
+#For the first and third graphs, 
+#fitted values vs Residual or fitted values vs sqrt(std residuals)
+#If we see some patterns, there's heteroscedasticity
+
+#Since it's too small dataset, it's not likely seemed to exist. 
+
+resid.lm <- lm(lm2$residuals~lm2$fitted.values)
+summary(resid.lm)
+#Is residuals explained by fitted values?
+#no, p value for t value is 1
+#no, p value for F statistic(Chi-square) is 1 -> at least one beta is 0, which is fitted values
+#no, R^2 is very low
+
+
+library(lmtest)
+bptest(lm2) #Heteroscedasticity test, P-value < 0.05 -> homoscedasticity
+
+library(gvlma)#Gloval Validation of Linear Models Assumptions
+summary(gvlma(lm2))
+
+#seems ok! 
+```
+
+
+Transformation
+--------------
+
+
+Boxcox transformation
+
+y(lambda) = 
+
+(y^(lambda)-1)/lambda if lambda != 0
+log(y)                if lambda == 0
+
+This searches the lambda that gives the maximum likelihood of y(lambda)
+```{r}
+#I will use boxcox transformation for response 
+#and log transformation for predictors if it would improve our model
+library(MASS)
+
+#Boxcox
+
+bc<-boxcox(lm2)
+lambda <- bc$x[which.max(bc$y)]
+lambda
+
+
+#log transformation on predictors
+predictors <- colnames(out.mtcars1)[-1]
+mt.predictors <- out.mtcars1[,predictors]
+mt.predictors.trans <- apply(mt.predictors, 2, function(x){log(x+1)})
+
+#boxcox transformation on response
+trans.mpg <- (out.mtcars1$mpg)^(lambda)
+
+trans.mtcars <- data.frame(cbind("mpg" = trans.mpg, mt.predictors.trans))
+
+#boxcox + log transformation
+lm3 <- lm(mpg~., trans.mtcars)
+summary(lm3)
+#slightly improved; adj.R^2 : 0.8324 -> 0.8343
+
+par(mfrow=c(2,2))
+plot(lm3)
+par(mfrow=c(1,1))
+
+```
