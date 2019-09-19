@@ -11,6 +11,7 @@ editor_options:
 ---
 
 
+
 ```r
 library(caret)
 ```
@@ -71,7 +72,7 @@ library(gridExtra)
 library(rpart)
 library(rpart.plot)
 
-
+#I am going to use iris dataset first
 iris %>% head
 ```
 
@@ -139,7 +140,7 @@ tr
 rpart.plot(tr)
 ```
 
-![](DecisionTree_files/figure-html/ModelingBuiltInR-1.png)<!-- -->
+![](DecisionTree_files/figure-html/IntroductionDecisionTree-1.png)<!-- -->
 
 ```r
 dtree.pred <- predict(tr, type="class")
@@ -182,38 +183,21 @@ t2 <- testing %>%
 grid.arrange(t1, t2) 
 ```
 
-![](DecisionTree_files/figure-html/ModelingBuiltInR-2.png)<!-- -->
-
+![](DecisionTree_files/figure-html/IntroductionDecisionTree-2.png)<!-- -->
 
 
 
 ```r
-#This algorithm is for Decision Tree with continuous predictors
-
-
-#dataset
-iris1 <- iris[order(iris$Sepal.Length, decreasing = FALSE),]
-
-#removing one of the class, virginica
-iris1 <- iris[which(iris$Species != "virginica"),]
-
-#removing the factor level that we don't have any more
-iris1$Species <- as.factor(as.character(iris1$Species))
-
-set.seed(13294)
-#splitting dataset
-training.idx <- createDataPartition(iris1$Species, p=0.7, list=FALSE)
-
-iris2 <- iris1[training.idx,]
-iris2.testing <- iris1[-training.idx,]
-
-target <- "Species"
-
-#average function
+#average function to create adjacent average between predictor indexes
 avg <- function(x1,x2){sum(x1,x2)/2}
 
 #gini function for a leaf
 gini <- function(x){
+  
+  if(dim(x)[1]==1){
+    return(1)
+  }
+  else{
     p11<-x[1,1]/sum(x[1,])
     p12<-x[1,2]/sum(x[1,])
     p21<-x[2,1]/sum(x[2,])
@@ -227,145 +211,221 @@ gini <- function(x){
     
     gini.imp <- a.false.prob * a.false.gini + a.true.prob * a.true.gini
     return(gini.imp)
+  }
 }
 
 
-#gini function for a variable (node)
-var.gini <- function(x, dat){
-  gini.dat <- data.frame(matrix(0, nrow=nrow(dat)-1, ncol=3))
-  colnames(gini.dat) <- c("index", "gini.imp", "adj.avg")
+#log function with base 2 for entropy
+log2 <- function(x){
+  if(x!=0){
+    return(log(x,base=2))
+  }
+  if(x==0){
+    return(0)
+  }
+}
+
+
+#entropy function for a leaf
+entropy <- function(x){
+  
+  if(dim(x)[1]==1){
+    return(0)
+  }
+  else{
+    p11<-x[1,1]/sum(x[1,])
+    p12<-x[1,2]/sum(x[1,])
+    p21<-x[2,1]/sum(x[2,])
+    p22<-x[2,2]/sum(x[2,])
+    
+    #Calculating weights, which is the bottom of the tree
+    a.false.entropy <- -(p11*log2(p11)+p12*log2(p12))
+    a.true.entropy <- -(p21*log2(p21)+p22*log2(p22))
+    
+    a.false.prob <- (x[1,1]+x[1,2]) / sum(x)
+    a.true.prob <- (x[2,1]+x[2,2]) / sum(x)
+    
+    
+    weighted.entropy <- a.true.prob*a.true.entropy + a.false.prob*a.false.entropy
+    
+    total.entropy <- -(a.false.prob*log2(a.false.prob) + a.true.prob*log2(a.true.prob))
+    
+    #Information Gain, which is the tree score to find best split
+    #If the bigger this value is, we find the better split
+    #maximum value is 1
+    IG <- total.entropy - weighted.entropy
+    
+    return(IG) 
+  }
+}
+
+
+#Calculating impurity to find which predictor is the best to split, which will be the top of the tree or first split in the tree
+var.impurity <- function(x, dat, fun){
+  imp.dat <- data.frame(matrix(0, nrow=nrow(dat)-1, ncol=3))
+  colnames(imp.dat) <- c("index", "impurity", "adj.avg")
 
   for(i in 1:(nrow(dat)-1)){
-    gini.dat[i,1] <- paste0("between ", i, " and ", i+1)
+    imp.dat[i,1] <- paste0("between ", i, " and ", i+1)
     #average value of the adjacent values
     a <- avg(x[i], x[i+1])
     mat <- as.matrix(table(x < a, dat[,target] ))
     
-    gini.dat[i,2] <- gini(mat)
-    gini.dat[i,3] <- a
+    imp.dat[i,2] <- fun(mat)
+    imp.dat[i,3] <- a
     }
-  return(gini.dat)
+  return(imp.dat)
 }
 
-#gini function for a dataset to find which variable is the important to predict
-#the most important variable will be the top of the tree
-iris.gini <- function(dat){
+#this function will give you the best score of split for each predictors
+impurity.fun <- function(dat, fun){
   predictors <- colnames(dat)[!colnames(dat) %in% target]
-  var.gini.dat <- data.frame(matrix(0, nrow=length(predictors),ncol=2))
-  colnames(var.gini.dat) <- c("var", "gini imp")
+  var.impur.dat <- data.frame(matrix(0, nrow=length(predictors),ncol=2))
+  colnames(var.impur.dat) <- c("var", "impurity")
   
   for(i in 1:(ncol(dat)-1)){
-    var.gini.dat[i,1] <- predictors[i]
-    var.gini.dat[i,2] <- min(var.gini(dat[,i], dat)$gini.imp)
+    var.impur.dat[i,1] <- predictors[i]
+    if(fun == "gini"){
+      #the least score of gini is the best split 
+      var.impur.dat[i,2] <- min(var.impurity(dat[,i], dat, gini)$impurity)
+    }
+    if(fun == "entropy"){
+      #the greates score of entropy is the best split
+      var.impur.dat[i,2] <- max(var.impurity(dat[,i], dat, entropy)$impurity)
+    }
   }
-  
-  return(var.gini.dat)
+  return(var.impur.dat)
 }
 
 
-iris.gini(iris2) %>% head
+#give you the best predictor to split or the top of the tree
+topTree.predictor <- function(x,fun){
+  if(fun == "entropy"){
+    return(which.max(impurity.fun(x, "entropy")[,2]))
+  }
+  if(fun == "gini"){
+    return(which.min(impurity.fun(x, "gini")[,2]))
+  }
+}
+
+#The best split point associated with the best predictor
+impurityOfbest <- function(dat, best.pred, fun){
+  if(fun == "entropy"){
+    impurity.pred <- var.impurity(dat[,best.pred], dat, entropy)$adj.avg[which.max(var.impurity(dat[,best.pred], dat, entropy)$impurity)]
+  }
+  if(fun == "gini"){
+    impurity.pred <- var.impurity(dat[,best.pred], dat, gini)$adj.avg[which.min(var.impurity(dat[,best.pred], dat, gini)$impurity)]
+  }
+  
+  print(paste0("Best predictor, which is top tree node is ", colnames(dat)[best.pred], " with best split is  ", impurity.pred, " by the metric, ", fun))
+  return(impurity.pred)
+}
+```
+
+
+
+
+```r
+#by Entropy metric, we want to find the maximum entropy score
+fun <- "entropy"
+target <- "Species"
+imp.pred <- topTree.predictor(iris1, fun)
+best.impur <- impurityOfbest(iris1, imp.pred, fun)
 ```
 
 ```
-##            var  gini imp
-## 1 Sepal.Length 0.1797386
-## 2  Sepal.Width 0.2647059
-## 3 Petal.Length 0.0000000
-## 4  Petal.Width 0.0000000
+## [1] "Best predictor, which is top tree node is Petal.Width with best split is  0.8 by the metric, entropy"
 ```
 
 ```r
-#finding the important features by gini impurity of each variable, 
-#which has the minimum gini impurity
-imp.pred <- which.min(iris.gini(iris2)[,2])
-colnames(iris2)[imp.pred]
-```
-
-```
-## [1] "Petal.Length"
-```
-
-```r
-var.gini(iris2[,imp.pred], iris2) %>% head(10)
-```
-
-```
-##                index  gini.imp adj.avg
-## 1    between 1 and 2 0.4531250    1.40
-## 2    between 2 and 3 0.3269231    1.45
-## 3    between 3 and 4 0.3269231    1.45
-## 4    between 4 and 5 0.2045455    1.55
-## 5    between 5 and 6 0.2045455    1.55
-## 6    between 6 and 7 0.4531250    1.40
-## 7    between 7 and 8 0.3269231    1.45
-## 8    between 8 and 9 0.2045455    1.55
-## 9   between 9 and 10 0.2045455    1.55
-## 10 between 10 and 11 0.3269231    1.45
-```
-
-```r
-#Since the predictors are continuous, 
-#we need to find the average adjacent value of the most important variable, 
-#which has the minimum of gini impurity
-
-min.gini <- var.gini(iris2[,imp.pred], iris2)$adj.avg[which.min(var.gini(iris2[,imp.pred], iris2)$gini.imp)]
-
-min.gini 
-```
-
-```
-## [1] 2.95
-```
-
-```r
-#Let's see how well this value predicts
-table(iris2[,imp.pred] < min.gini, iris2$Species)
+#Let's see how well this value calculated by the function predicts
+table(iris1[,imp.pred] < best.impur, iris1$Species)
 ```
 
 ```
 ##        
 ##         setosa versicolor
-##   FALSE      0         35
-##   TRUE      35          0
+##   FALSE      0         50
+##   TRUE      50          0
 ```
 
 ```r
 #perfectly predicted in training set
 
-pred.by<- as.factor(ifelse(iris2[,imp.pred] < min.gini, "setosa","versiclor"))
 
-iris2$pred.by <- pred.by
-t1 <- iris2 %>% 
-  ggplot(aes(x=Petal.Length, y=Petal.Width ,col=Species)) + 
+pred.by<- as.factor(ifelse(iris1[,imp.pred] < best.impur, "setosa","versiclor"))
+
+t1 <- iris1 %>% 
+  ggplot(aes(x=Petal.Width, y=Petal.Length ,col=Species)) + 
   geom_jitter() +
   ggtitle("Actual")
-t2 <- iris2 %>% 
-  ggplot(aes(x=Petal.Length, y=Petal.Width ,col=pred.by)) + 
+t2 <- iris1 %>% 
+  ggplot(aes(x=Petal.Width, y=Petal.Length ,col=pred.by)) + 
   geom_jitter() +
-  geom_vline(xintercept =  min.gini, colour="blue", linetype="dashed") + 
-  annotate(geom="text", label=min.gini, x=min.gini, y=0, vjust=-1) +
+  geom_vline(xintercept =  best.impur, colour="blue", linetype="dashed") + 
+  annotate(geom="text", label=best.impur, x=best.impur, y=0, vjust=-1) +
   ggtitle("Predicted")
 
 grid.arrange(t1,t2)
 ```
 
-![](DecisionTree_files/figure-html/DecisionTreeAlgorithm-1.png)<!-- -->
+![](DecisionTree_files/figure-html/Prediction-1.png)<!-- -->
 
 ```r
-#Let's see if it predicts well in testing set
-table(iris2.testing[,imp.pred] < min.gini, iris2.testing$Species)
+#perfect split
+
+
+
+
+#by Gini index
+fun <- "gini"
+target <- "Species"
+imp.pred <- topTree.predictor(iris1, fun)
+best.impur <- impurityOfbest(iris1, imp.pred,fun)
+```
+
+```
+## [1] "Best predictor, which is top tree node is Petal.Width with best split is  0.8 by the metric, gini"
+```
+
+```r
+#Let's see how well this value predicts
+table(iris1[,imp.pred] < impurityOfbest(iris1, imp.pred, fun), iris1$Species)
+```
+
+```
+## [1] "Best predictor, which is top tree node is Petal.Width with best split is  0.8 by the metric, gini"
 ```
 
 ```
 ##        
 ##         setosa versicolor
-##   FALSE      0         15
-##   TRUE      15          0
+##   FALSE      0         50
+##   TRUE      50          0
 ```
 
 ```r
-#Yes, it does. 
+#perfectly predicted in training set as well
+
+
+pred.by<- as.factor(ifelse(iris1[,imp.pred] < best.impur, "setosa","versiclor"))
+
+t1 <- iris1 %>% 
+  ggplot(aes(x=Petal.Width, y=Petal.Length ,col=Species)) + 
+  geom_jitter() +
+  ggtitle("Actual")
+t2 <- iris1 %>% 
+  ggplot(aes(x=Petal.Width, y=Petal.Length ,col=pred.by)) + 
+  geom_jitter() +
+  geom_vline(xintercept =  best.impur, colour="blue", linetype="dashed") + 
+  annotate(geom="text", label=best.impur, x=best.impur, y=0, vjust=-1) +
+  ggtitle("Predicted")
+
+grid.arrange(t1,t2)
 ```
+
+![](DecisionTree_files/figure-html/Prediction-2.png)<!-- -->
+
 
 
 
@@ -395,7 +455,7 @@ x3 <- c(x1,x2)
 x4 <- rnorm(10000, 1000, 2000)
 
 
-#The dataset will have 1 label and 2 predictors, which are x3 and 4
+#The dataset will have 1 label and 2 predictors, which are x3 and x4
 
 #Label dataset will be generated by x1 and x2
 
@@ -428,7 +488,7 @@ cor(x3,x4)
 ```
 
 ```
-## [1] 0.002784496
+## [1] 0.001760897
 ```
 
 ```r
@@ -444,8 +504,8 @@ tr
 ##       * denotes terminal node
 ## 
 ## 1) root 10000 5000 0 (0.50000000 0.50000000)  
-##   2) x3< 3180.355 5070  143 0 (0.97179487 0.02820513) *
-##   3) x3>=3180.355 4930   73 1 (0.01480730 0.98519270) *
+##   2) x3< 3024.085 5004  103 0 (0.97941647 0.02058353) *
+##   3) x3>=3024.085 4996   99 1 (0.01981585 0.98018415) *
 ```
 
 ```r
@@ -474,113 +534,137 @@ testing %>% ggplot(aes(x=x3, y=x4, col=y)) +
 
 ![](DecisionTree_files/figure-html/withNewDataset-7.png)<!-- -->
 
+
+
+
 ```r
+#by Entropy, the maximum entropy score is the best split
+fun <- "entropy"
 target <- "y"
-
-iris.gini(training)
+imp.pred <- topTree.predictor(training, fun)
+best.impur <- impurityOfbest(training, imp.pred, fun)
 ```
 
 ```
-##   var   gini imp
-## 1  x3 0.04381527
-## 2  x4 0.49984224
-```
-
-```r
-imp.pred <- which.min(iris.gini(training)[,2])
-colnames(training)[imp.pred]
-```
-
-```
-## [1] "x3"
+## [1] "Best predictor, which is top tree node is x3 with best split is  3016.77748153623 by the metric, entropy"
 ```
 
 ```r
-min.gini <- var.gini(training[,imp.pred], training)$adj.avg[which.min(var.gini(training[,imp.pred], training)$gini.imp)]
-
-
-min.gini
-```
-
-```
-## [1] 3102.928
-```
-
-```r
-rpart.plot(tr) #performed previously with whole dataset
-```
-
-![](DecisionTree_files/figure-html/withNewDataset-8.png)<!-- -->
-
-```r
-#the value is significantly similar to the adjacent average that I calculated by gini impurity
-
 #Let's see how well this value predicts
-table(training[,imp.pred] < min.gini, training$y)
+table(training[,imp.pred] < best.impur, training$y)
 ```
 
 ```
 ##        
 ##            0    1
-##   FALSE   63 3406
-##   TRUE  3437   94
+##   FALSE   71 3428
+##   TRUE  3429   72
 ```
 
 ```r
-table(testing[,imp.pred] < min.gini, testing$y)
-```
+#quite well predicted in training set
 
-```
-##        
-##            0    1
-##   FALSE   30 1469
-##   TRUE  1470   31
-```
+pred.by<- as.factor(ifelse(training[,imp.pred] < best.impur, "setosa","versiclor"))
 
-```r
-#performing well in both datasets
-
-training$pred <- as.factor(ifelse(training$x3 < min.gini, 0,1))
-testing$pred <- as.factor(ifelse(testing$x3 < min.gini, 0,1))
-
-table(training$pred, training$y)
-```
-
-```
-##    
-##        0    1
-##   0 3437   94
-##   1   63 3406
-```
-
-```r
 t1 <- training %>% 
-  ggplot(aes(x=x3, y=x4, col=y)) + 
-  geom_jitter() + 
-  ggtitle("Actual in training")
+  ggplot(aes(x=x3, y=x4 ,col=y)) + 
+  geom_jitter() +
+  ggtitle("Actual")
 t2 <- training %>% 
-  ggplot(aes(x=x3, y=x4, col=pred)) + 
-  geom_jitter() + 
-  geom_vline(xintercept =  min.gini, colour="blue", linetype="dashed") + 
-  annotate(geom="text", label=min.gini, x=min.gini, y=0, vjust=1) +
-  ggtitle("Predicted in training")
-grid.arrange(t1, t2)
+  ggplot(aes(x=x3, y=x4 ,col=pred.by)) + 
+  geom_jitter() +
+  geom_vline(xintercept =  best.impur, colour="blue", linetype="dashed") + 
+  annotate(geom="text", label=best.impur, x=best.impur, y=0, vjust=-1) +
+  ggtitle("Predicted")
+
+grid.arrange(t1,t2)
 ```
 
-![](DecisionTree_files/figure-html/withNewDataset-9.png)<!-- -->
+![](DecisionTree_files/figure-html/Entropy-1.png)<!-- -->
 
 ```r
+#in the Testset, which is we predict unkown dataset
+pred.by<- as.factor(ifelse(testing[,imp.pred] < best.impur, "setosa","versiclor"))
 t1 <- testing %>% 
-  ggplot(aes(x=x3, y=x4, col=y)) + 
-  geom_jitter() + 
-  ggtitle("Actual in testing")
+  ggplot(aes(x=x3, y=x4 ,col=y)) + 
+  geom_jitter() +
+  ggtitle("Actual")
 t2 <- testing %>% 
-  ggplot(aes(x=x3, y=x4, col=pred)) + 
-  geom_jitter() + 
-  geom_vline(xintercept =  min.gini, colour="blue", linetype="dashed") + 
-  annotate(geom="text", label=min.gini, x=min.gini, y=0, vjust=1) +
-  ggtitle("Predicted in testing")
-grid.arrange(t1, t2)
+  ggplot(aes(x=x3, y=x4, col=pred.by)) + 
+  geom_jitter() +
+  geom_vline(xintercept =  best.impur, colour="blue", linetype="dashed") + 
+  annotate(geom="text", label=best.impur, x=best.impur, y=0, vjust=-1) +
+  ggtitle("Predicted")
+
+grid.arrange(t1,t2)
 ```
 
-![](DecisionTree_files/figure-html/withNewDataset-10.png)<!-- -->
+![](DecisionTree_files/figure-html/Entropy-2.png)<!-- -->
+
+
+
+
+
+```r
+#by Gini, the least gini index score is the best split
+fun <- "gini"
+target <- "y"
+imp.pred <- topTree.predictor(training, fun)
+best.impur <- impurityOfbest(training, imp.pred, fun)
+```
+
+```
+## [1] "Best predictor, which is top tree node is x3 with best split is  3016.77748153623 by the metric, gini"
+```
+
+```r
+#Let's see how well this value predicts
+table(training[,imp.pred] < best.impur, training$y)
+```
+
+```
+##        
+##            0    1
+##   FALSE   71 3428
+##   TRUE  3429   72
+```
+
+```r
+#quite well predicted in training set
+
+pred.by<- as.factor(ifelse(training[,imp.pred] < best.impur, "setosa","versiclor"))
+
+t1 <- training %>% 
+  ggplot(aes(x=x3, y=x4 ,col=y)) + 
+  geom_jitter() +
+  ggtitle("Actual")
+t2 <- training %>% 
+  ggplot(aes(x=x3, y=x4 ,col=pred.by)) + 
+  geom_jitter() +
+  geom_vline(xintercept =  best.impur, colour="blue", linetype="dashed") + 
+  annotate(geom="text", label=best.impur, x=best.impur, y=0, vjust=-1) +
+  ggtitle("Predicted")
+
+grid.arrange(t1,t2)
+```
+
+![](DecisionTree_files/figure-html/Gini-1.png)<!-- -->
+
+```r
+#in the Testset, which is we predict unkown dataset
+pred.by<- as.factor(ifelse(testing[,imp.pred] < best.impur, "setosa","versiclor"))
+t1 <- testing %>% 
+  ggplot(aes(x=x3, y=x4 ,col=y)) + 
+  geom_jitter() +
+  ggtitle("Actual")
+t2 <- testing %>% 
+  ggplot(aes(x=x3, y=x4, col=pred.by)) + 
+  geom_jitter() +
+  geom_vline(xintercept =  best.impur, colour="blue", linetype="dashed") + 
+  annotate(geom="text", label=best.impur, x=best.impur, y=0, vjust=-1) +
+  ggtitle("Predicted")
+
+grid.arrange(t1,t2)
+```
+
+![](DecisionTree_files/figure-html/Gini-2.png)<!-- -->
