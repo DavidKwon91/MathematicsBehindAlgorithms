@@ -25,6 +25,7 @@ levels(iris$Species)
 #our target variable has 3 classes
 table(iris$Species)
 
+
 #removing one of the classes of the target variable, virginica, 
 #to make target as a binary variable
 iris1 <- iris[which(iris$Species != "virginica"),]
@@ -41,7 +42,6 @@ testing <- iris1[-training.idx,]
 
 #quick decision tree built in r, rpart
 tr <- rpart(Species~., training)
-tr
 rpart.plot(tr)
 
 
@@ -124,8 +124,8 @@ entropy <- function(x){
     a.false.entropy <- -(p11*log2(p11)+p21*log2(p21))
     a.true.entropy <- -(p12*log2(p12)+p22*log2(p22))
     
-    a.false.prob <- (x[1,1]+x[1,2]) / sum(x)
-    a.true.prob <- (x[2,1]+x[2,2]) / sum(x)
+    a.false.prob <- (x[1,1]+x[2,1]) / sum(x)
+    a.true.prob <- (x[1,2]+x[2,2]) / sum(x)
     
     
     weighted.entropy <- a.true.prob*a.true.entropy + a.false.prob*a.false.entropy
@@ -238,7 +238,7 @@ t2 <- iris1 %>%
   geom_jitter() +
   geom_vline(xintercept =  best.impur, colour="blue", linetype="dashed") + 
   annotate(geom="text", label=best.impur, x=best.impur, y=0, vjust=-1) +
-  ggtitle("Predicted")
+  ggtitle("Predicted with Information Gain")
 
 grid.arrange(t1,t2)
 #perfect split
@@ -269,7 +269,7 @@ t2 <- iris1 %>%
   geom_jitter() +
   geom_vline(xintercept =  best.impur, colour="blue", linetype="dashed") + 
   annotate(geom="text", label=best.impur, x=best.impur, y=0, vjust=-1) +
-  ggtitle("Predicted")
+  ggtitle("Predicted with Gini Impurity")
 
 grid.arrange(t1,t2)
 

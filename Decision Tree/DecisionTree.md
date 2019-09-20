@@ -122,21 +122,6 @@ testing <- iris1[-training.idx,]
 
 #quick decision tree built in r, rpart
 tr <- rpart(Species~., training)
-tr
-```
-
-```
-## n= 70 
-## 
-## node), split, n, loss, yval, (yprob)
-##       * denotes terminal node
-## 
-## 1) root 70 35 setosa (0.5000000 0.5000000)  
-##   2) Petal.Length< 2.35 35  0 setosa (1.0000000 0.0000000) *
-##   3) Petal.Length>=2.35 35  0 versicolor (0.0000000 1.0000000) *
-```
-
-```r
 rpart.plot(tr)
 ```
 
@@ -243,8 +228,8 @@ entropy <- function(x){
     a.false.entropy <- -(p11*log2(p11)+p21*log2(p21))
     a.true.entropy <- -(p12*log2(p12)+p22*log2(p22))
     
-    a.false.prob <- (x[1,1]+x[1,2]) / sum(x)
-    a.true.prob <- (x[2,1]+x[2,2]) / sum(x)
+    a.false.prob <- (x[1,1]+x[2,1]) / sum(x)
+    a.true.prob <- (x[1,2]+x[2,2]) / sum(x)
     
     
     weighted.entropy <- a.true.prob*a.true.entropy + a.false.prob*a.false.entropy
@@ -372,7 +357,7 @@ t2 <- iris1 %>%
   geom_jitter() +
   geom_vline(xintercept =  best.impur, colour="blue", linetype="dashed") + 
   annotate(geom="text", label=best.impur, x=best.impur, y=0, vjust=-1) +
-  ggtitle("Predicted")
+  ggtitle("Predicted with Information Gain")
 
 grid.arrange(t1,t2)
 ```
@@ -427,7 +412,7 @@ t2 <- iris1 %>%
   geom_jitter() +
   geom_vline(xintercept =  best.impur, colour="blue", linetype="dashed") + 
   annotate(geom="text", label=best.impur, x=best.impur, y=0, vjust=-1) +
-  ggtitle("Predicted")
+  ggtitle("Predicted with Gini Impurity")
 
 grid.arrange(t1,t2)
 ```
@@ -554,7 +539,7 @@ best.impur <- impurityOfbest(training, imp.pred, fun)
 ```
 
 ```
-## [1] "Best predictor, which is top tree node is x3 with best split is  3016.77748153623 by the metric, entropy"
+## [1] "Best predictor, which is top tree node is x4 with best split is  -5018.57322278977 by the metric, entropy"
 ```
 
 ```r
@@ -565,8 +550,8 @@ table(training[,imp.pred] < best.impur, training$y)
 ```
 ##        
 ##            0    1
-##   FALSE   71 3428
-##   TRUE  3429   72
+##   FALSE 3495 3495
+##   TRUE     5    5
 ```
 
 ```r
