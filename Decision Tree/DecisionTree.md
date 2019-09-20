@@ -198,13 +198,14 @@ gini <- function(x){
     return(1)
   }
   else{
-    p11<-x[1,1]/sum(x[1,])
-    p12<-x[1,2]/sum(x[1,])
-    p21<-x[2,1]/sum(x[2,])
-    p22<-x[2,2]/sum(x[2,])
+    #conditional probability given predictor (row : target, column : predictor)
+    p11<-x[1,1]/sum(x[,1])
+    p21<-x[2,1]/sum(x[,1])
+    p12<-x[1,2]/sum(x[,2])
+    p22<-x[2,2]/sum(x[,2])
     
-    a.false.gini <- 1-p11^2-p12^2
-    a.true.gini <- 1-p21^2-p22^2
+    a.false.gini <- 1-p11^2-p21^2
+    a.true.gini <- 1-p12^2-p22^2
     
     a.false.prob <- (x[1,1]+x[1,2]) / sum(x)
     a.true.prob <- (x[2,1]+x[2,2]) / sum(x)
@@ -233,14 +234,14 @@ entropy <- function(x){
     return(0)
   }
   else{
-    p11<-x[1,1]/sum(x[1,])
-    p12<-x[1,2]/sum(x[1,])
-    p21<-x[2,1]/sum(x[2,])
-    p22<-x[2,2]/sum(x[2,])
+    p11<-x[1,1]/sum(x[,1])
+    p21<-x[2,1]/sum(x[,1])
+    p12<-x[1,2]/sum(x[,2])
+    p22<-x[2,2]/sum(x[,2])
     
     #Calculating weights, which is the bottom of the tree
-    a.false.entropy <- -(p11*log2(p11)+p12*log2(p12))
-    a.true.entropy <- -(p21*log2(p21)+p22*log2(p22))
+    a.false.entropy <- -(p11*log2(p11)+p21*log2(p21))
+    a.true.entropy <- -(p12*log2(p12)+p22*log2(p22))
     
     a.false.prob <- (x[1,1]+x[1,2]) / sum(x)
     a.true.prob <- (x[2,1]+x[2,2]) / sum(x)
@@ -264,6 +265,7 @@ entropy <- function(x){
 var.impurity <- function(x, dat, fun){
   imp.dat <- data.frame(matrix(0, nrow=nrow(dat)-1, ncol=3))
   colnames(imp.dat) <- c("index", "impurity", "adj.avg")
+  
 
   for(i in 1:(nrow(dat)-1)){
     imp.dat[i,1] <- paste0("between ", i, " and ", i+1)
@@ -614,7 +616,7 @@ best.impur <- impurityOfbest(training, imp.pred, fun)
 ```
 
 ```
-## [1] "Best predictor, which is top tree node is x3 with best split is  3016.77748153623 by the metric, gini"
+## [1] "Best predictor, which is top tree node is x4 with best split is  -5018.57322278977 by the metric, gini"
 ```
 
 ```r
@@ -625,8 +627,8 @@ table(training[,imp.pred] < best.impur, training$y)
 ```
 ##        
 ##            0    1
-##   FALSE   71 3428
-##   TRUE  3429   72
+##   FALSE 3495 3495
+##   TRUE     5    5
 ```
 
 ```r
