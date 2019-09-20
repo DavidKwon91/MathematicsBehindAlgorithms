@@ -559,13 +559,19 @@ var.impurity &lt;- function(x, dat, fun){
     imp.dat[i,1] &lt;- paste0(&quot;between &quot;, i, &quot; and &quot;, i+1)
     #average value of the adjacent values
     a &lt;- avg(x[i], x[i+1])
-    mat &lt;- as.matrix(table(x &lt; a, dat[,target] ))
+    
+    predictor.name &lt;- colnames(dat)[which(sapply(dat, function(x,want) isTRUE(all.equal(x,want)),x)==TRUE)]
+    
+    #Sorting the data by the predictor
+    dat1 &lt;- dat[order(x,decreasing=FALSE),]
+    mat &lt;- as.matrix(table(dat1[,predictor.name] &lt; a, dat1[,target] ))
     
     imp.dat[i,2] &lt;- fun(mat)
     imp.dat[i,3] &lt;- a
     }
   return(imp.dat)
 }
+
 
 #this function will give you the best score of split for each predictors
 impurity.fun &lt;- function(dat, fun){
