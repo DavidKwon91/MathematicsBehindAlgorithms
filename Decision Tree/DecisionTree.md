@@ -184,22 +184,21 @@ gini <- function(x){
   }
   else{
     #conditional probability given predictor (row : target, column : predictor)
-    p11<-x[1,1]/sum(x[,1])
-    p21<-x[2,1]/sum(x[,1])
-    p12<-x[1,2]/sum(x[,2])
-    p22<-x[2,2]/sum(x[,2])
+    p11<-x[1,1]/sum(x[1,])
+    p12<-x[1,2]/sum(x[1,])
+    p21<-x[2,1]/sum(x[2,])
+    p22<-x[2,2]/sum(x[2,])
     
-    a.false.gini <- 1-p11^2-p21^2
-    a.true.gini <- 1-p12^2-p22^2
+    a.false.gini <- 1-p11^2-p12^2
+    a.true.gini <- 1-p21^2-p22^2
     
-    a.false.prob <- (x[1,1]+x[1,2]) / sum(x)
-    a.true.prob <- (x[2,1]+x[2,2]) / sum(x)
+    a.false.prob <- (x[1,1]+x[2,1]) / sum(x)
+    a.true.prob <- (x[1,2]+x[2,2]) / sum(x)
     
     gini.imp <- a.false.prob * a.false.gini + a.true.prob * a.true.gini
     return(gini.imp)
   }
 }
-
 
 #log function with base 2 for entropy
 log2 <- function(x){
@@ -212,6 +211,7 @@ log2 <- function(x){
 }
 
 
+
 #entropy function for a leaf
 entropy <- function(x){
   
@@ -219,17 +219,17 @@ entropy <- function(x){
     return(0)
   }
   else{
-    p11<-x[1,1]/sum(x[,1])
-    p21<-x[2,1]/sum(x[,1])
-    p12<-x[1,2]/sum(x[,2])
-    p22<-x[2,2]/sum(x[,2])
+    p11<-x[1,1]/sum(x[1,])
+    p12<-x[1,2]/sum(x[1,])
+    p21<-x[2,1]/sum(x[2,])
+    p22<-x[2,2]/sum(x[2,])
     
     #Calculating weights, which is the bottom of the tree
-    a.false.entropy <- -(p11*log2(p11)+p21*log2(p21))
-    a.true.entropy <- -(p12*log2(p12)+p22*log2(p22))
+    a.false.entropy <- -(p11*log2(p11)+p12*log2(p12))
+    a.true.entropy <- -(p21*log2(p21)+p22*log2(p22))
     
-    a.false.prob <- (x[1,1]+x[2,1]) / sum(x)
-    a.true.prob <- (x[1,2]+x[2,2]) / sum(x)
+    a.false.prob <- (x[1,1]+x[1,2]) / sum(x)
+    a.true.prob <- (x[2,1]+x[2,2]) / sum(x)
     
     
     weighted.entropy <- a.true.prob*a.true.entropy + a.false.prob*a.false.entropy
@@ -261,6 +261,9 @@ var.impurity <- function(x, dat, fun){
     
     #Sorting the data by the predictor
     dat1 <- dat[order(x,decreasing=FALSE),]
+    #average value of the adjacent values
+    a <- avg(dat1[i,predictor.name], dat1[i+1,predictor.name])
+    
     mat <- as.matrix(table(dat1[,predictor.name] < a, dat1[,target] ))
     
     imp.dat[i,2] <- fun(mat)
@@ -327,7 +330,7 @@ best.impur <- impurityOfbest(iris1, imp.pred, fun)
 ```
 
 ```
-## [1] "Best predictor, which is top tree node is Petal.Width with best split is  0.8 by the metric, entropy"
+## [1] "Best predictor, which is top tree node is Petal.Length with best split is  2.45 by the metric, entropy"
 ```
 
 ```r
@@ -368,8 +371,6 @@ grid.arrange(t1,t2)
 #perfect split
 
 
-
-
 #by Gini index
 fun <- "gini"
 target <- "Species"
@@ -378,7 +379,7 @@ best.impur <- impurityOfbest(iris1, imp.pred,fun)
 ```
 
 ```
-## [1] "Best predictor, which is top tree node is Petal.Width with best split is  0.8 by the metric, gini"
+## [1] "Best predictor, which is top tree node is Petal.Length with best split is  2.45 by the metric, gini"
 ```
 
 ```r
@@ -387,7 +388,7 @@ table(iris1[,imp.pred] < impurityOfbest(iris1, imp.pred, fun), iris1$Species)
 ```
 
 ```
-## [1] "Best predictor, which is top tree node is Petal.Width with best split is  0.8 by the metric, gini"
+## [1] "Best predictor, which is top tree node is Petal.Length with best split is  2.45 by the metric, gini"
 ```
 
 ```
@@ -534,12 +535,22 @@ testing %>% ggplot(aes(x=x3, y=x4, col=y)) +
 #by Entropy, the maximum entropy score is the best split
 fun <- "entropy"
 target <- "y"
+impurity.fun(training, fun)
+```
+
+```
+##   var     impurity
+## 1  x3 8.577738e-01
+## 2  x4 6.359676e-06
+```
+
+```r
 imp.pred <- topTree.predictor(training, fun)
 best.impur <- impurityOfbest(training, imp.pred, fun)
 ```
 
 ```
-## [1] "Best predictor, which is top tree node is x4 with best split is  -5018.57322278977 by the metric, entropy"
+## [1] "Best predictor, which is top tree node is x3 with best split is  3031.91103120604 by the metric, entropy"
 ```
 
 ```r
@@ -550,8 +561,8 @@ table(training[,imp.pred] < best.impur, training$y)
 ```
 ##        
 ##            0    1
-##   FALSE 3495 3495
-##   TRUE     5    5
+##   FALSE   68 3427
+##   TRUE  3432   73
 ```
 
 ```r
@@ -607,7 +618,7 @@ best.impur <- impurityOfbest(training, imp.pred, fun)
 ```
 
 ```
-## [1] "Best predictor, which is top tree node is x4 with best split is  -5018.57322278977 by the metric, gini"
+## [1] "Best predictor, which is top tree node is x3 with best split is  3031.91103120604 by the metric, gini"
 ```
 
 ```r
@@ -618,8 +629,8 @@ table(training[,imp.pred] < best.impur, training$y)
 ```
 ##        
 ##            0    1
-##   FALSE 3495 3495
-##   TRUE     5    5
+##   FALSE   68 3427
+##   TRUE  3432   73
 ```
 
 ```r
