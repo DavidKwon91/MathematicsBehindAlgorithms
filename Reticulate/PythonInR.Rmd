@@ -1,0 +1,486 @@
+---
+title: "Python in R"
+author: "Yongbock(David) Kwon"
+output:
+  html_document:
+    keep_md: true
+  html_notebook: default
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+Simple Decision Tree in R
+========================
+
+```{r inR}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+#Quick Decision Tree in R
+iris1 <- iris[which(iris$Species != "virginica"),]
+
+#removing the factor level that we don't have any more
+iris1$Species <- as.factor(as.character(iris1$Species))
+
+set.seed(1234)
+#splitting dataset
+training.idx <- createDataPartition(iris1$Species, p=0.7, list=FALSE)
+
+training <- iris1[training.idx,]
+testing <- iris1[-training.idx,]
+
+#quick decision tree built in r, rpart
+tr <- rpart(Species~., training)
+tr
+rpart.plot(tr)
+
+
+
+dtree.pred <- predict(tr, type="class")
+
+table(dtree.pred, training$Species)
+#with Petal.Length < 2.5, the model predict perfectly in training set
+
+dtree.pred.test <- predict(tr, testing, type="class")
+
+table(dtree.pred.test, testing$Species)
+#with Petal.Length < 2.5, the model predict perfectly in testing set as well
+
+
+t1 <- testing %>% 
+  ggplot(aes(x=Petal.Length, y=Petal.Width, col=Species)) + 
+  geom_jitter() + ggtitle("Actual value in R")
+t2 <- testing %>% 
+  ggplot(aes(x=Petal.Length, y=Petal.Width, col=dtree.pred.test)) + 
+  geom_jitter() + ggtitle("Predicted value in R")
+grid.arrange(t1, t2) 
+
+
+```
+
+Python Engine and Virtual Environment Setup
+==========================================
+```{r createPythonEnv}
+library(reticulate)
+#Let's use conda environment
+Sys.which("python")
+use_python("/anaconda3/bin/python")
+
+virtualenv_list()
+
+#you have to reopen Rstudio after installing those packages into virtual environment
+#also make sure you have installed the packages in conda environment
+
+#virtualenv_install("r-reticulate", "bayesian-optimization")
+#virtualenv_install("r-reticulate", "pandas")
+#virtualenv_install("r-reticulate", "seaborn")
+#virtualenv_install("r-reticulate", "sklearn")
+#virtualenv_install("r-reticulate", "xgboost")
+use_virtualenv("r-reticulate")
+
+
+
+py_module_available("seaborn")
+py_module_available("sklearn")
+py_module_available("pandas")
+py_module_available("bayes_opt")
+py_module_available("xgboost")
+
+```
+
+Simple Decision Tree as Python Code in R
+=======================================
+```{python inPython}
+import matplotlib as mlt
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+import pandas as pd
+from sklearn.datasets import load_iris
+from sklearn import tree
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import train_test_split
+#iris dataset that I have removed the row for virginica in R environment
+r.iris1.head(5)
+r.iris1.describe()
+
+#Let's create same datset from iris in Python module, it's in "new" virtual environment
+#import iris dataset from sklearn
+iris2 = load_iris()
+
+r.iris1.columns
+
+#convert sklearn dataset to pandas dataframe
+df_iris2 = pd.DataFrame(data= np.c_[iris2['data'], iris2['target']], columns= ['SepalLength','SepalWidth','PetalLength','PetalWidth','Species'])
+
+df_iris2.head(5)
+
+#remove "virginica" 
+new_iris2 = df_iris2[df_iris2.Species !=2]
+
+Y = new_iris2.Species
+X = new_iris2.iloc[:,0:4]
+
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3, random_state=42)
+
+tree_clf = tree.DecisionTreeClassifier(max_depth=2, random_state=42)
+cross_val_score(tree_clf, X_train, y_train, cv=10)
+
+tree_fit = tree_clf.fit(X_train, y_train)
+tree_fit
+
+
+pred = tree_clf.predict(X_test)
+
+pd.crosstab(pred, y_test, rownames = ['pred'], colnames=['actual'])
+
+plt.subplot(1, 2, 1)
+plt.scatter(X_test.PetalLength, X_test.PetalWidth, c=pred)
+plt.title('Predicted value')
+plt.subplot(1, 2, 2)
+plt.scatter(X_test.PetalLength, X_test.PetalWidth, c=y_test)
+plt.title('Actual value')
+plt.show()
+
+```
+
+Python variables in R
+====================
+
+```{r fromPythontoR}
+#see the created Dataset from Python
+library(plyr)
+iris.convert <- function(Y){
+  y <- as.character(Y)
+  y <- as.factor(revalue(y,c('0' = "setosa", '1' = "versicolor")))
+  return(y)
+}
+
+py.act <- py$X_test %>% 
+  mutate(act = iris.convert(py$y_test)) %>% 
+  ggplot(aes(x=PetalLength, y=PetalWidth, col=act)) + 
+  geom_jitter()+
+  labs(title="Actual Value in Python")
+
+py.pred <- py$X_test %>% 
+  mutate(pred = iris.convert(py$pred)) %>% 
+  ggplot(aes(x=PetalLength, y=PetalWidth, col=pred)) +
+  geom_jitter()+
+  labs(title="Predicted value in Python")
+
+grid.arrange(py.act, py.pred) 
+grid.arrange(t1,t2)
+
+detach(package:plyr)
+```
+
+XGboost with Bayesian Optimization in R
+======================================
+
+```{r xgb.Bayesopt}
+library(xgboost)
+library(rBayesianOptimization)
+library(MLmetrics)
+#Let's remove all environment created above
+rm(list=ls())
+
+#labeling species
+iris1 <- iris %>% mutate(Species = as.integer(Species)-1)
+
+set.seed(1234)
+#splitting dataset
+training.idx <- createDataPartition(iris1$Species, p=0.7, list=FALSE)
+
+#splitting
+train <- as.matrix(iris1[training.idx,])
+valid <- as.matrix(iris1[-training.idx,])
+
+train.label <- iris1$Species[training.idx]
+valid.label <- iris1$Species[-training.idx]
+
+#XGB dataform
+dtrain <- xgb.DMatrix(data = as.matrix(train),
+                      label = train.label)
+dvalid <- xgb.DMatrix(data = as.matrix(valid),
+                      label = valid.label)
+
+set.seed(1234)
+#cv
+cv_folds <- createFolds(train.label, k=5, list=TRUE)
+
+#function for bayesian optimization
+xgb_cv_bayes <- function(max_depth, min_child_weight, subsample, 
+                         colsample_bytree, lambda, gamma, alpha) {
+  cv <- xgb.cv(params = list(booster = "gbtree", eta = 0.008,
+                             max_depth = max_depth,
+                             min_child_weight = min_child_weight,
+                             subsample = subsample, 
+                             colsample_bytree = colsample_bytree,
+                             lambda = lambda, 
+                             gamma = gamma,
+                             alpha = alpha,
+                             objective = "multi:softprob",
+                             eval_metric = "mlogloss",
+                             num_class=3),
+               data = dtrain, nround = 1000,
+               folds = cv_folds, prediction = TRUE, showsd = TRUE,
+               early_stopping_rounds = 100, maximize = TRUE, verbose = 0)
+  list(Score = cv$evaluation_log$test_mlogloss_mean[cv$best_iteration],
+       Pred = cv$pred)
+}
+
+#BayesianOptimization
+Bayes_opt <- BayesianOptimization(xgb_cv_bayes,
+                                bounds = list(
+                                  #tree depth
+                                  max_depth = c(1L,5L), 
+                                  #sum of Hessian for each node
+                                  min_child_weight = c(1L, 10L),
+                                  #randomly sapmle row index(data points)
+                                  subsample = c(0.6, 1),
+                                  #randomly sample column index(like random forest)
+                                  colsample_bytree = c(0.6,1),
+                                  #adding L2 regularization term (ridge)
+                                  lambda = c(0.001,1),
+                                  #adding L1 regularization term (lasso)
+                                  alpha = c(0.001,1),
+                                  #minimum loss reduction for further partition
+                                  gamma = c(0.1,2)),
+                                init_grid_dt = NULL, init_points = 10, n_iter = 20,
+                                acq = "ucb", kappa = 2.576, eps = 0.0,
+                                verbose = TRUE)
+
+#It takes times
+
+Bayes_opt
+#Best Parameter
+Bayes_opt$Best_Par
+Bayes_opt$Best_Value
+
+
+#training
+xgb <- xgb.train(params=as.list(Bayes_opt$Best_Par),
+          data = dtrain,
+          nrounds = 1000,
+          booster="gbtree",
+          objective = "multi:softprob",
+          eval_metric = "mlogloss",
+          num_class=3,
+          early_stopping_rounds=100,
+          watchlist=list(val1=dtrain,val2=dvalid))
+xgb
+#prediction
+xgb.pred <- predict(xgb,valid,reshape=T,type="response")
+
+#Multiclass log loss 
+MultiLogLoss(y_true = iris$Species[-training.idx], y_pred = xgb.pred)
+
+#convert probabilities to names of Species
+xgb.pred <- as.data.frame(xgb.pred)
+colnames(xgb.pred) <- levels(iris$Species)
+xgb.pred$prediction <- apply(xgb.pred,1,function(x) colnames(xgb.pred)[which.max(x)])
+xgb.pred$label <- levels(iris$Species)[valid.label+1]
+
+xgb.pred
+
+#Total Accuracy
+sum(xgb.pred$prediction==xgb.pred$label)/nrow(xgb.pred)
+#100% accuracy 
+table(xgb.pred$prediction, xgb.pred$label)
+
+#prediction vs actual graph
+pred.iris <- iris[-training.idx,] %>% 
+  mutate(pred = xgb.pred$prediction) %>%
+  ggplot(aes(x=Petal.Length, y=Petal.Width, col=pred)) + 
+  geom_jitter() + labs(title="Predicted value XGBoost with Bayes Opt in R")
+
+act.iris <- iris[-training.idx,] %>% 
+  ggplot(aes(x=Petal.Length, y=Petal.Width, col=Species)) + 
+  geom_jitter() + labs(title="Actual Value")
+
+grid.arrange(pred.iris,act.iris)
+
+```
+
+
+XGboost with Bayesian Optimization as Python code in R
+===============================================
+```{python BayesOpt}
+import math
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+from bayes_opt import BayesianOptimization
+import xgboost as xgb
+from xgboost import XGBClassifier
+
+#Let's use the same dataset above
+df_iris2.head(5)
+df_iris2.shape
+
+Y = df_iris2.Species
+X = df_iris2.iloc[:,0:4]
+
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3, random_state=42)
+
+XGB_dtrain = xgb.DMatrix(X_train, label=y_train)
+XGB_dtest = xgb.DMatrix(X_test)
+
+def xgb_evaluate(max_depth,subsample,colsample_bytree,min_child_weight,reg_lambda,reg_alpha,gamma):
+    params={'eval_metric':'mlogloss',
+            'objective':'multi:softprob',
+            'num_class':3,
+            'booster':'gbtree',
+           'max_depth':int(max_depth),
+            'subsample':subsample,
+            'colsample_bytree':colsample_bytree,
+            'min_child_weight':int(min_child_weight),
+            'reg_lambda':reg_lambda,
+            'reg_alpha': reg_alpha,
+            'gamma':gamma,
+           'eta':0.008}
+    cv = xgb.cv(params, XGB_dtrain, num_boost_round=10,nfold=3)
+    return cv['test-mlogloss-mean'].iloc[-1]
+
+xgb_bo = BayesianOptimization(xgb_evaluate,
+                             {'max_depth':(1,5),
+                             'subsample':(0.6,1),
+                             'colsample_bytree':(0.6,1),
+                             'min_child_weight':(1,10),
+                             'reg_lambda':(0.001,1),
+                             'reg_alpha':(0.001,1),
+                             'gamma':(0.1,2)})
+```
+
+```{python, results='hide'}
+xgb_bo.maximize(init_points=10,n_iter=20,acq='ucb', kappa=2.576)
+```
+
+```{python}
+
+xgb_bo.max
+#need to convert max_depth and min_child_weight to integer
+bo_params=xgb_bo.max['params']
+bo_params['max_depth'] = int(round(bo_params['max_depth']))
+bo_params['min_child_weight'] = int(round(bo_params['min_child_weight']))
+bo_params
+
+XGB_fit = xgb.train(bo_params,XGB_dtrain,num_boost_round = 100)
+pred = XGB_fit.predict(XGB_dtest)
+
+pred = pred.round()
+pred += 0.
+pd.crosstab(pred, y_test, rownames = ['pred'], colnames=['actual'])
+#100%
+
+plt.subplot(1, 2, 1)
+plt.scatter(X_test.PetalLength, X_test.PetalWidth, c=pred)
+plt.title('Predicted value by XGboost with Bayes Opt in Python')
+plt.subplot(1, 2, 2)
+plt.scatter(X_test.PetalLength, X_test.PetalWidth, c=y_test)
+plt.title('Actual value')
+plt.show()
+```
+
+Compare Parameters from R and Python
+===============================
+```{r}
+py$bo_params
+Bayes_opt$Best_Par
+
+#Mostly same parameter except for lambda and alpha, which is L1 and L2 regularization
+```
+
+
+XGBoost training with Parameters calculated in Python Environment in R
+=====================================
+```{r}
+#We can use the parameter tuned from Python in R code
+
+py.params = py$xgb_bo$max
+py$xgb_bo$max
+
+#training
+xgb <- xgb.train(params=py.params,
+          data = dtrain,
+          nrounds = 1000,
+          booster="gbtree",
+          objective = "multi:softprob",
+          eval_metric = "mlogloss",
+          num_class=3)
+xgb
+#prediction
+xgb.pred <- predict(xgb,valid,reshape=T,type="response")
+
+#Multiclass log loss 
+MultiLogLoss(y_true = iris$Species[-training.idx], y_pred = xgb.pred)
+
+#convert probabilities to names of Species
+xgb.pred <- as.data.frame(xgb.pred)
+colnames(xgb.pred) <- levels(iris$Species)
+xgb.pred$prediction <- apply(xgb.pred,1,function(x) colnames(xgb.pred)[which.max(x)])
+xgb.pred$label <- levels(iris$Species)[valid.label+1]
+
+xgb.pred
+
+#Total Accuracy
+sum(xgb.pred$prediction==xgb.pred$label)/nrow(xgb.pred)
+#100% accuracy 
+table(xgb.pred$prediction, xgb.pred$label)
+
+#prediction vs actual graph
+pred.iris <- iris[-training.idx,] %>% 
+  mutate(pred = xgb.pred$prediction) %>%
+  ggplot(aes(x=Petal.Length, y=Petal.Width, col=pred)) + 
+  geom_jitter() + labs(title="Predicted value with Hyperparameter from Python in R")
+
+act.iris <- iris[-training.idx,] %>% 
+  ggplot(aes(x=Petal.Length, y=Petal.Width, col=Species)) + 
+  geom_jitter() + labs(title="Actual Value")
+
+grid.arrange(pred.iris,act.iris)
+
+```
+
+XGBoost training with Parameters calculated in R Environment in Python
+=====================================
+```{python}
+#We can use the parameter tuned from R in Python code
+r.Bayes_opt['Best_Value']
+r.Bayes_opt['Best_Par']
+r.Bayes_opt['History']
+
+df = pd.DataFrame(r.Bayes_opt['History'],columns=r.Bayes_opt['History'].columns)
+df1 = r.Bayes_opt['History'].loc[df['Value']==r.Bayes_opt['Best_Value']].iloc[:,1:].to_dict('index')
+df1
+
+#need to convert max_depth and min_child_weight to integer
+r_params = df1[24]
+r_params['max_depth'] = int(round(r_params['max_depth']))
+r_params['min_child_weight'] = int(round(r_params['min_child_weight']))
+r_params
+
+
+XGB_fit = xgb.train(r_params,XGB_dtrain,num_boost_round = 100)
+pred = XGB_fit.predict(XGB_dtest)
+
+pred = pred.round()
+pred += 0.
+pd.crosstab(pred, y_test, rownames = ['pred'], colnames=['actual'])
+#100%
+
+plt.subplot(1, 2, 1)
+plt.scatter(X_test.PetalLength, X_test.PetalWidth, c=pred)
+plt.title('Predicted value by XGboost with Bayes Opt in Python')
+plt.subplot(1, 2, 2)
+plt.scatter(X_test.PetalLength, X_test.PetalWidth, c=y_test)
+plt.title('Actual value')
+plt.show()
+
+```
+
+
