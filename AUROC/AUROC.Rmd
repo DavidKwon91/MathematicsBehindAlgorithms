@@ -17,7 +17,7 @@ editor_options:
 
 #### 1 is always positive, for example, "not Fraud", "not Disease", or some one of binary value that has more obs than the obs of the other factor levels.
 
-#### 0 is always negarive, for example, "Fraud", "Disease", or some one of binary value that has less obs than the obs of the other factor levels.
+#### 0 is always negative, for example, "Fraud", "Disease", or some one of binary value that has less obs than the obs of the other factor levels, which we might want to predict well. 
 
 
 #### Thorough CV process and tuning parameters have been skipped since this will focus on ROC and AUC
@@ -31,14 +31,15 @@ library(caret)
 library(MLmetrics)
 library(rpart)
 library(rpart.plot)
+library(ROCR)
 ```
 
 ```{r}
 set.seed(1231234)
 
 #Let's suppose we have this binary target variables and predicted values
-target <- ifelse(rbinom(1000, 1, 0.95)==1, "not Fraud","Fraud")
-pred <- ifelse(rbinom(1000, 1, 0.95)==1, "not Fraud", "Fraud")
+target <- ifelse(rbinom(1000, 1, 0.05)==1, "Fraud","not Fraud")
+pred <- ifelse(rbinom(1000, 1, 0.05)==1, "Fraud", "not Fraud")
 
 table(target, pred)
 
@@ -51,12 +52,12 @@ tptnfpfn <- function(x,y){
   f.names <- tap[1] %>% names
   
   if(tap[1] > tap[2]){
-    target <- ifelse(x == f.names, 1, 0)
-    pred <- ifelse(y == f.names, 1, 0)
-  }
-  if(tap[2] > tap[1]){
     target <- ifelse(x == f.names, 0, 1)
     pred <- ifelse(y == f.names, 0, 1)
+  }
+  if(tap[2] > tap[1]){
+    target <- ifelse(x == f.names, 1, 0)
+    pred <- ifelse(y == f.names, 1, 0)
   }
   
   #target <- x
@@ -111,8 +112,8 @@ spec <- function(tp.dat){
 }
 
 #Syntax built in R
-confusionMatrix(as.factor(pred),as.factor(target), positive="not Fraud")
-F1_Score(target, pred, positive = "not Fraud")
+confusionMatrix(as.factor(pred),as.factor(target), positive="Fraud")
+F1_Score(target, pred, positive = "Fraud")
 
 #Sensitivity and Specificity by my own functions
 recall(tp.dat) # = Sensitivity = TPR
@@ -129,9 +130,9 @@ f1.score(tp.dat)
 ```{r}
 
 #target: 0 = not Fraud // 1 = Fraud
-target <- ifelse(rbinom(1000, 1, 0.95)==1, "not Fraud","Fraud")
+target <- ifelse(rbinom(1000, 1, 0.05)==1, "Fraud","not Fraud")
 #predicted values: right skewed probabilities in interval [0,1]
-pred <- c(runif(100,0,0.5),runif(900,0.5,0.999))
+pred <- c(runif(900,0,0.5),runif(100,0.5,0.999))
 
 
 
@@ -139,10 +140,19 @@ pred <- c(runif(100,0,0.5),runif(900,0.5,0.999))
 roc.func <- function(target,pred){
   dummy <- data.frame(TPR = rep(0, length(target)), 
                       FPR = rep(0, length(target)), 
-                      Spec = rep(0,length(target)))
+                      Spec = rep(0,length(target)),
+                      Precision = rep(0, length(target)),
+                      f1score = rep(0, length(target)))
   
-  f.name <- levels(as.factor(target))[1]
-  s.name <- levels(as.factor(target))[2]
+  tap <- tapply(target,target,length)
+  if(tap[1] > tap[2]){
+    f.name <- levels(as.factor(target))[2]
+    s.name <- levels(as.factor(target))[1]
+  }
+  if(tap[2] > tap[1]){
+    f.name <- levels(as.factor(target))[1]
+    s.name <- levels(as.factor(target))[2]
+  }
   
   for(i in 1:length(target)){
     #splitting the probabilities by cutoff with same levels
@@ -151,9 +161,11 @@ roc.func <- function(target,pred){
     tptn <- tptnfpfn(target,pred.cutoff)
     
     dummy$cutoff[i] <- sort(pred)[i]
-    dummy$TPR[i] <- tptn$TP / (tptn$TP + tptn$FN)
+    dummy$TPR[i] <- recall(tptn)
     dummy$FPR[i] <- tptn$FP / (tptn$FP + tptn$TN)
-    dummy$Spec[i] <- tptn$TN / (tptn$FP + tptn$TN)
+    dummy$Spec[i] <- spec(tptn)
+    dummy$Precision[i] <- precision(tptn)
+    dummy$f1score[i] <- f1.score(tptn)
   }
   
   #dummy$TPR <- ifelse(dummy$TPR == "NaN", 0, dummy$TPR)
@@ -171,6 +183,7 @@ roc.func <- function(target,pred){
 auc.func <- function(target, pred){
   tap <- tapply(target, target, length)
   f.name <- tap[1] %>% names
+  
   if(tap[1] > tap[2]){
     target1 <- ifelse(target == f.name, TRUE, FALSE)
   }
@@ -185,8 +198,9 @@ auc.func <- function(target, pred){
   return(1 - U / (n1*n2))
 }
 
+
 #Built in R
-confusionMatrix(as.factor(target), as.factor(ifelse(pred >= 0.5, "not Fraud", "Fraud")))
+confusionMatrix(as.factor(target), as.factor(ifelse(pred >= 0.5, "Fraud", "not Fraud")))
 roc.curve <- roc(target, pred, levels=c("Fraud","not Fraud"))
 roc.curve
 plot(roc.curve)
@@ -195,8 +209,11 @@ auc(roc.curve)
 
 #Functions by my own
 roc.dat <- roc.func(target, pred)
+roc.dat %>% head
 
 roc.dat %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline() + labs(title="ROC Curve")
+roc.dat %>% ggplot(aes(x=TPR, y=Spec)) + geom_line() + labs(title = "Sensitivity vs Specificity")
+roc.dat %>% ggplot(aes(x=TPR, y=Precision)) + geom_line() + labs(title = "Precision vs Recall")
 auc.func(target, pred)
 ```
 
@@ -254,15 +271,34 @@ dtree
 
 dtree.pred <- predict(dtree, test, type="prob")
 dtree.pred %>% head
-#probability for 1 = neg
-dtree.pred1 <- dtree.pred[,1] 
-#if cutoff value is 0.5, and pred1 < 0.5, then it's 0 = pos for diabetes
+#probability for class positive 1 = pos
+dtree.pred1 <- dtree.pred[,2] 
+#if cutoff value is 0.5, and pred1 < 0.5, then it's 0 = neg for diabetes
 dtree.pred1 %>% head
 
 
 
 #roc built in R
-roc.curve.dtree <- roc(test$diabetes, dtree.pred1, levels=c("neg","pos"), positive="neg")
+pred.dtree <- prediction(dtree.pred1, test$diabetes, label.ordering = c("neg","pos"))
+
+#ROC curve
+perf <- performance(pred.dtree, "tpr","fpr")
+plot(perf)
+
+#AUC value
+perf <- performance(pred.dtree, "auc")
+perf@y.values[[1]]
+
+#Sensitivity vs Specificity
+perf <- performance(pred.dtree, "sens","spec")
+plot(perf)
+
+#Precision vs Recall
+perf <- performance(pred.dtree, "prec", "rec")
+plot(perf)
+
+#Another way
+roc.curve.dtree <- roc(test$diabetes, dtree.pred1, levels=c("pos","neg"), positive="pos")
 plot(roc.curve.dtree)
 auc(roc.curve.dtree)
 roc.curve.dtree %>% coords("best", transpose=FALSE)
@@ -275,15 +311,15 @@ threshold.dtree
 #since it's to predict if the patient has diabetes
 
 #Typical cutoff value, 0.5
-confusionMatrix(as.factor(ifelse(dtree.pred1 >= 0.5, "neg", "pos")), 
+confusionMatrix(as.factor(ifelse(dtree.pred1 >= 0.5, "pos", "neg")), 
                 as.factor(test$diabetes))
 
 #Optimal cutoff value
-confusionMatrix(as.factor(ifelse(dtree.pred1 >= threshold.dtree, "neg", "pos")),
+confusionMatrix(as.factor(ifelse(dtree.pred1 >= threshold.dtree, "pos", "neg")),
                 as.factor(test$diabetes))
 
 #Functions created by my own
-tp.dat.dtree <- tptnfpfn(test$diabetes,ifelse(dtree.pred1 >= threshold.dtree, "neg", "pos"))
+tp.dat.dtree <- tptnfpfn(test$diabetes,ifelse(dtree.pred1 >= threshold.dtree, "pos", "neg"))
 tp.dat.dtree
 
 precision(tp.dat.dtree)
@@ -292,9 +328,16 @@ spec(tp.dat.dtree)
 f1.score(tp.dat.dtree)
 
 roc.dat.dtree <- roc.func(test$diabetes, dtree.pred1)
-roc.dat.dtree %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline()
+roc.dat.dtree %>% head
+roc.dat.dtree %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline() +
+  labs(title="ROC Curve")
+roc.dat.dtree %>% ggplot(aes(x=TPR, y=Spec)) + geom_line() +
+  labs(title = "Sensitivity vs Specificity") + xlab("Sensitivity") + ylab("Specificity")
+roc.dat.dtree %>% ggplot(aes(x=TPR, y=Precision)) + geom_line() +
+  labs(title = "Recall vs Precision") + xlab("Recall") + ylab("Precision")
 
-auc.dtree <- auc.func(test$diabetes, dtree.pred1)
+
+auc.dtree <- 1-auc.func(test$diabetes, dtree.pred1)
 auc.dtree
 ```
 
@@ -307,32 +350,54 @@ rf
 rf.pred <- predict(rf, test, type="prob")
 rf.pred %>% head
 #probability for 1 = neg
-rf.pred1 <- rf.pred[,1]
+rf.pred1 <- rf.pred[,2]
 #if cutoff value is 0.5, and pred1 < 0.5, then it's 0 = pos for diabetes
 rf.pred1 %>% head
 
 
 
 #roc built in R
-roc.curve.rf <- roc(test$diabetes, rf.pred1, levels=c("neg","pos"), positive="neg")
+pred.rf <- prediction(rf.pred1, test$diabetes, label.ordering = c("neg","pos"))
+
+#ROC curve
+perf <- performance(pred.rf, "tpr","fpr")
+plot(perf)
+
+#AUC value
+perf <- performance(pred.rf, "auc")
+perf@y.values[[1]]
+
+#Sensitivity vs Specificity
+perf <- performance(pred.rf, "sens","spec")
+plot(perf)
+
+#Precision vs Recall
+perf <- performance(pred.rf, "prec", "rec")
+plot(perf)
+
+#Another way
+roc.curve.rf <- roc(test$diabetes, rf.pred1, levels=c("pos","neg"), positive="pos")
 plot(roc.curve.rf)
 auc(roc.curve.rf)
 roc.curve.rf %>% coords("best", transpose=FALSE)
 
+#Optimal Cutoff probability
 threshold.rf <- data.frame(roc.curve.rf %>% coords("best", transpose=FALSE))[,1]
 threshold.rf
 
+#We would want higher probability of predicting "pos",
+#since it's to predict if the patient has diabetes
+
 #Typical cutoff value, 0.5
-confusionMatrix(as.factor(ifelse(rf.pred1 >= 0.5, "neg", "pos")), 
+confusionMatrix(as.factor(ifelse(rf.pred1 >= 0.5, "pos", "neg")), 
                 as.factor(test$diabetes))
 
 #Optimal cutoff value
-confusionMatrix(as.factor(ifelse(rf.pred1 >= threshold.rf, "neg", "pos")),
+confusionMatrix(as.factor(ifelse(rf.pred1 >= threshold.rf, "pos", "neg")),
                 as.factor(test$diabetes))
 
-
 #Functions created by my own
-tp.dat.rf <- tptnfpfn(test$diabetes,ifelse(rf.pred1 >= threshold.rf, "neg", "pos"))
+tp.dat.rf <- tptnfpfn(test$diabetes,ifelse(rf.pred1 >= threshold.rf, "pos", "neg"))
 tp.dat.rf
 
 precision(tp.dat.rf)
@@ -341,9 +406,16 @@ spec(tp.dat.rf)
 f1.score(tp.dat.rf)
 
 roc.dat.rf <- roc.func(test$diabetes, rf.pred1)
-roc.dat.rf %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline()
+roc.dat.rf %>% head
+roc.dat.rf %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline() +
+  labs(title="ROC Curve")
+roc.dat.rf %>% ggplot(aes(x=TPR, y=Spec)) + geom_line() +
+  labs(title = "Sensitivity vs Specificity") + xlab("Sensitivity") + ylab("Specificity")
+roc.dat.rf %>% ggplot(aes(x=TPR, y=Precision)) + geom_line() +
+  labs(title = "Recall vs Precision") + xlab("Recall") + ylab("Precision")
 
-auc.rf <- auc.func(test$diabetes, rf.pred1)
+
+auc.rf <- 1-auc.func(test$diabetes, rf.pred1)
 auc.rf
 ```
 
@@ -359,29 +431,51 @@ glm.mod
 glm.pred <- predict(glm.mod, test, type="prob")
 glm.pred %>% head
 
-glm.pred1 <- glm.pred[,1]
+glm.pred1 <- glm.pred[,2]
 glm.pred1 %>% head
 
 #roc built in R
-roc.curve.glm <- roc(test$diabetes, glm.pred1, levels=c("neg","pos"), positive="neg")
+pred.glm <- prediction(glm.pred1, test$diabetes, label.ordering = c("neg","pos"))
+
+#ROC curve
+perf <- performance(pred.glm, "tpr","fpr")
+plot(perf)
+
+#AUC value
+perf <- performance(pred.glm, "auc")
+perf@y.values[[1]]
+
+#Sensitivity vs Specificity
+perf <- performance(pred.glm, "sens","spec")
+plot(perf)
+
+#Precision vs Recall
+perf <- performance(pred.glm, "prec", "rec")
+plot(perf)
+
+#Another way
+roc.curve.glm <- roc(test$diabetes, glm.pred1, levels=c("pos","neg"), positive="pos")
 plot(roc.curve.glm)
 auc(roc.curve.glm)
 roc.curve.glm %>% coords("best", transpose=FALSE)
 
-#Optmial cutoff
+#Optimal Cutoff probability
 threshold.glm <- data.frame(roc.curve.glm %>% coords("best", transpose=FALSE))[,1]
 threshold.glm
 
+#We would want higher probability of predicting "pos",
+#since it's to predict if the patient has diabetes
+
 #Typical cutoff value, 0.5
-confusionMatrix(as.factor(ifelse(glm.pred1 >= 0.5, "neg", "pos")), 
+confusionMatrix(as.factor(ifelse(glm.pred1 >= 0.5, "pos", "neg")), 
                 as.factor(test$diabetes))
 
 #Optimal cutoff value
-confusionMatrix(as.factor(ifelse(glm.pred1 >= threshold.glm, "neg", "pos")),
+confusionMatrix(as.factor(ifelse(glm.pred1 >= threshold.glm, "pos", "neg")),
                 as.factor(test$diabetes))
 
 #Functions created by my own
-tp.dat.glm <- tptnfpfn(test$diabetes,ifelse(glm.pred1 >= threshold.glm, "neg", "pos"))
+tp.dat.glm <- tptnfpfn(test$diabetes,ifelse(glm.pred1 >= threshold.glm, "pos", "neg"))
 tp.dat.glm
 
 precision(tp.dat.glm)
@@ -390,9 +484,16 @@ spec(tp.dat.glm)
 f1.score(tp.dat.glm)
 
 roc.dat.glm <- roc.func(test$diabetes, glm.pred1)
-roc.dat.glm %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline()
+roc.dat.glm %>% head
+roc.dat.glm %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline() +
+  labs(title="ROC Curve")
+roc.dat.glm %>% ggplot(aes(x=TPR, y=Spec)) + geom_line() +
+  labs(title = "Sensitivity vs Specificity") + xlab("Sensitivity") + ylab("Specificity")
+roc.dat.glm %>% ggplot(aes(x=TPR, y=Precision)) + geom_line() +
+  labs(title = "Recall vs Precision") + xlab("Recall") + ylab("Precision")
 
-auc.glm <- auc.func(test$diabetes, glm.pred1)
+
+auc.glm <- 1-auc.func(test$diabetes, glm.pred1)
 auc.glm
 ```
 
@@ -408,31 +509,52 @@ svm.mod
 svm.pred <- predict(svm.mod, test, type="prob")
 svm.pred %>% head
 
-svm.pred1 <- svm.pred[,1]
+svm.pred1 <- svm.pred[,2]
 svm.pred1 %>% head
 
 
 #roc built in R
-roc.curve.svm <- roc(test$diabetes, svm.pred1, levels=c("neg","pos"), positive="neg")
+pred.svm <- prediction(svm.pred1, test$diabetes, label.ordering = c("neg","pos"))
+
+#ROC curve
+perf <- performance(pred.svm, "tpr","fpr")
+plot(perf)
+
+#AUC value
+perf <- performance(pred.svm, "auc")
+perf@y.values[[1]]
+
+#Sensitivity vs Specificity
+perf <- performance(pred.svm, "sens","spec")
+plot(perf)
+
+#Precision vs Recall
+perf <- performance(pred.svm, "prec", "rec")
+plot(perf)
+
+#Another way
+roc.curve.svm <- roc(test$diabetes, svm.pred1, levels=c("pos","neg"), positive="pos")
 plot(roc.curve.svm)
 auc(roc.curve.svm)
 roc.curve.svm %>% coords("best", transpose=FALSE)
 
-
-#Optmial cutoff
+#Optimal Cutoff probability
 threshold.svm <- data.frame(roc.curve.svm %>% coords("best", transpose=FALSE))[,1]
 threshold.svm
 
+#We would want higher probability of predicting "pos",
+#since it's to predict if the patient has diabetes
+
 #Typical cutoff value, 0.5
-confusionMatrix(as.factor(ifelse(glm.pred1 >= 0.5, "neg", "pos")), 
+confusionMatrix(as.factor(ifelse(svm.pred1 >= 0.5, "pos", "neg")), 
                 as.factor(test$diabetes))
 
 #Optimal cutoff value
-confusionMatrix(as.factor(ifelse(glm.pred1 >= threshold.svm, "neg", "pos")),
+confusionMatrix(as.factor(ifelse(svm.pred1 >= threshold.svm, "pos", "neg")),
                 as.factor(test$diabetes))
 
 #Functions created by my own
-tp.dat.svm <- tptnfpfn(test$diabetes,ifelse(svm.pred1 >= threshold.svm, "neg", "pos"))
+tp.dat.svm <- tptnfpfn(test$diabetes,ifelse(svm.pred1 >= threshold.svm, "pos", "neg"))
 tp.dat.svm
 
 precision(tp.dat.svm)
@@ -441,9 +563,16 @@ spec(tp.dat.svm)
 f1.score(tp.dat.svm)
 
 roc.dat.svm <- roc.func(test$diabetes, svm.pred1)
-roc.dat.svm %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline()
+roc.dat.svm %>% head
+roc.dat.svm %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline() +
+  labs(title="ROC Curve")
+roc.dat.svm %>% ggplot(aes(x=TPR, y=Spec)) + geom_line() +
+  labs(title = "Sensitivity vs Specificity") + xlab("Sensitivity") + ylab("Specificity")
+roc.dat.svm %>% ggplot(aes(x=TPR, y=Precision)) + geom_line() +
+  labs(title = "Recall vs Precision") + xlab("Recall") + ylab("Precision")
 
-auc.svm <- auc.func(test$diabetes, svm.pred1)
+
+auc.svm <- 1-auc.func(test$diabetes, svm.pred1)
 auc.svm
 ```
 
@@ -465,21 +594,51 @@ roc.dat %>% ggplot(aes(x=FPR, y=TPR, col=model)) +
   geom_abline() +
   labs(title= "ROC Curves for 4 models")
 
-#Optimal Cutoff Values
+
+#Optimal Cutoff Values by models and by metrics
 
 #Decision Tree
+
+#Optimal Cutoff for Sensitivity and Specificity
+roc.dat.dtree$cutoff[which.max(roc.dat.dtree$TPR + roc.dat.dtree$Spec)]
+
+#Optimal Cutoff for Precision and Recall
+roc.dat.dtree$cutoff[which.max(roc.dat.dtree$TPR + roc.dat.dtree$Precision)]
+
+roc.dat.dtree %>% filter(cutoff == roc.dat.dtree$cutoff[which.max(roc.dat.dtree$TPR + roc.dat.dtree$Spec)]) %>% head
+roc.dat.dtree %>% filter(cutoff == roc.dat.dtree$cutoff[which.max(roc.dat.dtree$TPR + roc.dat.dtree$Precision)]) %>% head
+
 roc.curve.dtree %>% 
   coords("best",transpose=FALSE)
 
 #Random Forest
+
+roc.dat.rf$cutoff[which.max(roc.dat.rf$TPR + roc.dat.rf$Spec)]
+roc.dat.rf$cutoff[which.max(roc.dat.rf$TPR + roc.dat.rf$Precision)]
+
+roc.dat.rf %>% filter(cutoff == roc.dat.rf$cutoff[which.max(roc.dat.rf$TPR + roc.dat.rf$Spec)])
+roc.dat.rf %>% filter(cutoff == roc.dat.rf$cutoff[which.max(roc.dat.rf$TPR + roc.dat.rf$Precision)])
+
 roc.curve.rf %>% 
   coords("best",transpose=FALSE)
 
 #Logistic Regression
+roc.dat.glm$cutoff[which.max(roc.dat.glm$TPR + roc.dat.glm$Spec)]
+roc.dat.glm$cutoff[which.max(roc.dat.glm$TPR + roc.dat.glm$Precision)]
+
+roc.dat.glm %>% filter(cutoff == roc.dat.glm$cutoff[which.max(roc.dat.glm$TPR + roc.dat.glm$Spec)])
+roc.dat.glm %>% filter(cutoff == roc.dat.glm$cutoff[which.max(roc.dat.glm$TPR + roc.dat.glm$Precision)])
+
 roc.curve.glm %>% 
   coords("best",transpose=FALSE)
 
 #SVM
+roc.dat.svm$cutoff[which.max(roc.dat.svm$TPR + roc.dat.svm$Spec)]
+roc.dat.svm$cutoff[which.max(roc.dat.svm$TPR + roc.dat.svm$Precision)]
+
+roc.dat.svm %>% filter(cutoff == roc.dat.svm$cutoff[which.max(roc.dat.svm$TPR + roc.dat.svm$Spec)])
+roc.dat.svm %>% filter(cutoff == roc.dat.svm$cutoff[which.max(roc.dat.svm$TPR + roc.dat.svm$Precision)])
+
 roc.curve.svm %>% 
   coords("best",transpose=FALSE)
 
@@ -490,18 +649,49 @@ auc.rf
 auc.glm
 auc.svm
 
-#I will choose model that has the greatest value of AUC, and pick the optimal cutoff value for the model, even if this model has less accuracy than others. 
+table(train$diabetes)
+table(test$diabetes)
+#Since the dataset is an imablanced data, so I will choose the model by the best cutoff for Precision and Recall, even if the model has less accuracy and less AUC values than others. 
 
+#So I will see the f1 score
+dtree.cutoff <- roc.dat.dtree$cutoff[which.max(roc.dat.dtree$f1score)]
+rf.cutoff <- roc.dat.rf$cutoff[which.max(roc.dat.rf$f1score)]
+glm.cutoff <- roc.dat.glm$cutoff[which.max(roc.dat.glm$f1score)]
+svm.cutoff <- roc.dat.svm$cutoff[which.max(roc.dat.svm$f1score)]
+
+#Confusion Matrix with Optimal cutoff value
+confusionMatrix(as.factor(ifelse(dtree.pred1 >= dtree.cutoff, "pos", "neg")),
+                as.factor(test$diabetes))
+
+#Optimal cutoff value
+confusionMatrix(as.factor(ifelse(rf.pred1 >= rf.cutoff, "pos", "neg")),
+                as.factor(test$diabetes))
+
+#Optimal cutoff value
+confusionMatrix(as.factor(ifelse(glm.pred1 >= glm.cutoff, "pos", "neg")),
+                as.factor(test$diabetes))
+
+#Optimal cutoff value
+confusionMatrix(as.factor(ifelse(svm.pred1 >= svm.cutoff, "pos", "neg")),
+                as.factor(test$diabetes))
+
+
+pred.f1score <- data.frame(dtree = max(roc.dat.dtree$f1score),
+                           rf = max(roc.dat.rf$f1score),
+                           glm = max(roc.dat.glm$f1score),
+                           svm = max(roc.dat.svm$f1score))
+
+pred.f1score
+which.max(pred.f1score) %>% names
+#glm seems to be the best model for imbalanaced dataset
+
+#with auc
 auc.dat <- data.frame(dtree = auc.dtree,
                       rf = auc.rf,
                       glm = auc.glm,
                       svm = auc.svm)
-
+auc.dat
 which.max(auc.dat) %>% names
 
-
-#With Optimal cutoff value for the best model
-confusionMatrix(as.factor(ifelse(glm.pred1 >= threshold.glm, "neg", "pos")),
-                as.factor(test$diabetes))
 
 ```

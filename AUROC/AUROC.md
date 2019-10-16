@@ -17,7 +17,7 @@ editor_options:
 
 #### 1 is always positive, for example, "not Fraud", "not Disease", or some one of binary value that has more obs than the obs of the other factor levels.
 
-#### 0 is always negarive, for example, "Fraud", "Disease", or some one of binary value that has less obs than the obs of the other factor levels.
+#### 0 is always negative, for example, "Fraud", "Disease", or some one of binary value that has less obs than the obs of the other factor levels, which we might want to predict well. 
 
 
 #### Thorough CV process and tuning parameters have been skipped since this will focus on ROC and AUC
@@ -108,6 +108,22 @@ library(MLmetrics)
 ```r
 library(rpart)
 library(rpart.plot)
+library(ROCR)
+```
+
+```
+## Loading required package: gplots
+```
+
+```
+## 
+## Attaching package: 'gplots'
+```
+
+```
+## The following object is masked from 'package:stats':
+## 
+##     lowess
 ```
 
 
@@ -115,8 +131,8 @@ library(rpart.plot)
 set.seed(1231234)
 
 #Let's suppose we have this binary target variables and predicted values
-target <- ifelse(rbinom(1000, 1, 0.95)==1, "not Fraud","Fraud")
-pred <- ifelse(rbinom(1000, 1, 0.95)==1, "not Fraud", "Fraud")
+target <- ifelse(rbinom(1000, 1, 0.05)==1, "Fraud","not Fraud")
+pred <- ifelse(rbinom(1000, 1, 0.05)==1, "Fraud", "not Fraud")
 
 table(target, pred)
 ```
@@ -138,12 +154,12 @@ tptnfpfn <- function(x,y){
   f.names <- tap[1] %>% names
   
   if(tap[1] > tap[2]){
-    target <- ifelse(x == f.names, 1, 0)
-    pred <- ifelse(y == f.names, 1, 0)
-  }
-  if(tap[2] > tap[1]){
     target <- ifelse(x == f.names, 0, 1)
     pred <- ifelse(y == f.names, 0, 1)
+  }
+  if(tap[2] > tap[1]){
+    target <- ifelse(x == f.names, 1, 0)
+    pred <- ifelse(y == f.names, 1, 0)
   }
   
   #target <- x
@@ -165,8 +181,8 @@ tp.dat
 ```
 
 ```
-##    TP FP TN FN
-## 1 904 47  7 42
+##   TP FP  TN FN
+## 1  7 42 904 47
 ```
 
 
@@ -202,7 +218,7 @@ spec <- function(tp.dat){
 }
 
 #Syntax built in R
-confusionMatrix(as.factor(pred),as.factor(target), positive="not Fraud")
+confusionMatrix(as.factor(pred),as.factor(target), positive="Fraud")
 ```
 
 ```
@@ -222,25 +238,25 @@ confusionMatrix(as.factor(pred),as.factor(target), positive="not Fraud")
 ##                                           
 ##  Mcnemar's Test P-Value : 0.6716          
 ##                                           
-##             Sensitivity : 0.9556          
-##             Specificity : 0.1296          
-##          Pos Pred Value : 0.9506          
-##          Neg Pred Value : 0.1429          
-##              Prevalence : 0.9460          
-##          Detection Rate : 0.9040          
-##    Detection Prevalence : 0.9510          
+##             Sensitivity : 0.1296          
+##             Specificity : 0.9556          
+##          Pos Pred Value : 0.1429          
+##          Neg Pred Value : 0.9506          
+##              Prevalence : 0.0540          
+##          Detection Rate : 0.0070          
+##    Detection Prevalence : 0.0490          
 ##       Balanced Accuracy : 0.5426          
 ##                                           
-##        'Positive' Class : not Fraud       
+##        'Positive' Class : Fraud           
 ## 
 ```
 
 ```r
-F1_Score(target, pred, positive = "not Fraud")
+F1_Score(target, pred, positive = "Fraud")
 ```
 
 ```
-## [1] 0.9530838
+## [1] 0.1359223
 ```
 
 ```r
@@ -249,7 +265,7 @@ recall(tp.dat) # = Sensitivity = TPR
 ```
 
 ```
-## [1] 0.9556025
+## [1] 0.1296296
 ```
 
 ```r
@@ -257,7 +273,7 @@ spec(tp.dat) #TNR
 ```
 
 ```
-## [1] 0.1296296
+## [1] 0.9556025
 ```
 
 ```r
@@ -266,7 +282,7 @@ precision(tp.dat)
 ```
 
 ```
-## [1] 0.9505783
+## [1] 0.1428571
 ```
 
 ```r
@@ -274,7 +290,7 @@ f1.score(tp.dat)
 ```
 
 ```
-## [1] 0.9530838
+## [1] 0.1359223
 ```
 
 
@@ -282,9 +298,9 @@ f1.score(tp.dat)
 
 ```r
 #target: 0 = not Fraud // 1 = Fraud
-target <- ifelse(rbinom(1000, 1, 0.95)==1, "not Fraud","Fraud")
+target <- ifelse(rbinom(1000, 1, 0.05)==1, "Fraud","not Fraud")
 #predicted values: right skewed probabilities in interval [0,1]
-pred <- c(runif(100,0,0.5),runif(900,0.5,0.999))
+pred <- c(runif(900,0,0.5),runif(100,0.5,0.999))
 
 
 
@@ -292,10 +308,19 @@ pred <- c(runif(100,0,0.5),runif(900,0.5,0.999))
 roc.func <- function(target,pred){
   dummy <- data.frame(TPR = rep(0, length(target)), 
                       FPR = rep(0, length(target)), 
-                      Spec = rep(0,length(target)))
+                      Spec = rep(0,length(target)),
+                      Precision = rep(0, length(target)),
+                      f1score = rep(0, length(target)))
   
-  f.name <- levels(as.factor(target))[1]
-  s.name <- levels(as.factor(target))[2]
+  tap <- tapply(target,target,length)
+  if(tap[1] > tap[2]){
+    f.name <- levels(as.factor(target))[2]
+    s.name <- levels(as.factor(target))[1]
+  }
+  if(tap[2] > tap[1]){
+    f.name <- levels(as.factor(target))[1]
+    s.name <- levels(as.factor(target))[2]
+  }
   
   for(i in 1:length(target)){
     #splitting the probabilities by cutoff with same levels
@@ -304,9 +329,11 @@ roc.func <- function(target,pred){
     tptn <- tptnfpfn(target,pred.cutoff)
     
     dummy$cutoff[i] <- sort(pred)[i]
-    dummy$TPR[i] <- tptn$TP / (tptn$TP + tptn$FN)
+    dummy$TPR[i] <- recall(tptn)
     dummy$FPR[i] <- tptn$FP / (tptn$FP + tptn$TN)
-    dummy$Spec[i] <- tptn$TN / (tptn$FP + tptn$TN)
+    dummy$Spec[i] <- spec(tptn)
+    dummy$Precision[i] <- precision(tptn)
+    dummy$f1score[i] <- f1.score(tptn)
   }
   
   #dummy$TPR <- ifelse(dummy$TPR == "NaN", 0, dummy$TPR)
@@ -324,6 +351,7 @@ roc.func <- function(target,pred){
 auc.func <- function(target, pred){
   tap <- tapply(target, target, length)
   f.name <- tap[1] %>% names
+  
   if(tap[1] > tap[2]){
     target1 <- ifelse(target == f.name, TRUE, FALSE)
   }
@@ -338,8 +366,9 @@ auc.func <- function(target, pred){
   return(1 - U / (n1*n2))
 }
 
+
 #Built in R
-confusionMatrix(as.factor(target), as.factor(ifelse(pred >= 0.5, "not Fraud", "Fraud")))
+confusionMatrix(as.factor(target), as.factor(ifelse(pred >= 0.5, "Fraud", "not Fraud")))
 ```
 
 ```
@@ -347,26 +376,26 @@ confusionMatrix(as.factor(target), as.factor(ifelse(pred >= 0.5, "not Fraud", "F
 ## 
 ##            Reference
 ## Prediction  Fraud not Fraud
-##   Fraud         2        40
-##   not Fraud    98       860
+##   Fraud         6        36
+##   not Fraud    94       864
 ##                                           
-##                Accuracy : 0.862           
-##                  95% CI : (0.8391, 0.8828)
+##                Accuracy : 0.87            
+##                  95% CI : (0.8476, 0.8902)
 ##     No Information Rate : 0.9             
-##     P-Value [Acc > NIR] : 0.9999          
+##     P-Value [Acc > NIR] : 0.999           
 ##                                           
-##                   Kappa : -0.0329         
+##                   Kappa : 0.0269          
 ##                                           
-##  Mcnemar's Test P-Value : 1.221e-06       
+##  Mcnemar's Test P-Value : 5.756e-07       
 ##                                           
-##             Sensitivity : 0.02000         
-##             Specificity : 0.95556         
-##          Pos Pred Value : 0.04762         
-##          Neg Pred Value : 0.89770         
-##              Prevalence : 0.10000         
-##          Detection Rate : 0.00200         
-##    Detection Prevalence : 0.04200         
-##       Balanced Accuracy : 0.48778         
+##             Sensitivity : 0.0600          
+##             Specificity : 0.9600          
+##          Pos Pred Value : 0.1429          
+##          Neg Pred Value : 0.9019          
+##              Prevalence : 0.1000          
+##          Detection Rate : 0.0060          
+##    Detection Prevalence : 0.0420          
+##       Balanced Accuracy : 0.5100          
 ##                                           
 ##        'Positive' Class : Fraud           
 ## 
@@ -390,7 +419,7 @@ roc.curve
 ## roc.default(response = target, predictor = pred, levels = c("Fraud",     "not Fraud"))
 ## 
 ## Data: pred in 42 controls (target Fraud) > 958 cases (target not Fraud).
-## Area under the curve: 0.547
+## Area under the curve: 0.5573
 ```
 
 ```r
@@ -404,24 +433,49 @@ auc(roc.curve)
 ```
 
 ```
-## Area under the curve: 0.547
+## Area under the curve: 0.5573
 ```
 
 ```r
 #Functions by my own
 roc.dat <- roc.func(target, pred)
+roc.dat %>% head
+```
 
+```
+##   TPR       FPR        Spec  Precision    f1score       cutoff
+## 1   1 1.0000000 0.000000000 0.04200000 0.08061420 0.0003039041
+## 2   1 0.9989562 0.001043841 0.04204204 0.08069164 0.0004311660
+## 3   1 0.9979123 0.002087683 0.04208417 0.08076923 0.0006966693
+## 4   1 0.9968685 0.003131524 0.04212638 0.08084697 0.0015679502
+## 5   1 0.9958246 0.004175365 0.04216867 0.08092486 0.0018644598
+## 6   1 0.9947808 0.005219207 0.04221106 0.08100289 0.0019716683
+```
+
+```r
 roc.dat %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline() + labs(title="ROC Curve")
 ```
 
 ![](AUROC_files/figure-html/unnamed-chunk-4-2.png)<!-- -->
 
 ```r
+roc.dat %>% ggplot(aes(x=TPR, y=Spec)) + geom_line() + labs(title = "Sensitivity vs Specificity")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-4-3.png)<!-- -->
+
+```r
+roc.dat %>% ggplot(aes(x=TPR, y=Precision)) + geom_line() + labs(title = "Precision vs Recall")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-4-4.png)<!-- -->
+
+```r
 auc.func(target, pred)
 ```
 
 ```
-## [1] 0.5470226
+## [1] 0.557287
 ```
 
 
@@ -560,19 +614,56 @@ dtree.pred %>% head
 ```
 
 ```r
-#probability for 1 = neg
-dtree.pred1 <- dtree.pred[,1] 
-#if cutoff value is 0.5, and pred1 < 0.5, then it's 0 = pos for diabetes
+#probability for class positive 1 = pos
+dtree.pred1 <- dtree.pred[,2] 
+#if cutoff value is 0.5, and pred1 < 0.5, then it's 0 = neg for diabetes
 dtree.pred1 %>% head
 ```
 
 ```
-## [1] 0.2553191 0.4285714 0.9779412 0.9696970 0.8461538 0.1000000
+## [1] 0.74468085 0.57142857 0.02205882 0.03030303 0.15384615 0.90000000
 ```
 
 ```r
 #roc built in R
-roc.curve.dtree <- roc(test$diabetes, dtree.pred1, levels=c("neg","pos"), positive="neg")
+pred.dtree <- prediction(dtree.pred1, test$diabetes, label.ordering = c("neg","pos"))
+
+#ROC curve
+perf <- performance(pred.dtree, "tpr","fpr")
+plot(perf)
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+
+```r
+#AUC value
+perf <- performance(pred.dtree, "auc")
+perf@y.values[[1]]
+```
+
+```
+## [1] 0.7800833
+```
+
+```r
+#Sensitivity vs Specificity
+perf <- performance(pred.dtree, "sens","spec")
+plot(perf)
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-7-2.png)<!-- -->
+
+```r
+#Precision vs Recall
+perf <- performance(pred.dtree, "prec", "rec")
+plot(perf)
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-7-3.png)<!-- -->
+
+```r
+#Another way
+roc.curve.dtree <- roc(test$diabetes, dtree.pred1, levels=c("pos","neg"), positive="pos")
 ```
 
 ```
@@ -583,7 +674,7 @@ roc.curve.dtree <- roc(test$diabetes, dtree.pred1, levels=c("neg","pos"), positi
 plot(roc.curve.dtree)
 ```
 
-![](AUROC_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+![](AUROC_files/figure-html/unnamed-chunk-7-4.png)<!-- -->
 
 ```r
 auc(roc.curve.dtree)
@@ -599,7 +690,7 @@ roc.curve.dtree %>% coords("best", transpose=FALSE)
 
 ```
 ##      threshold specificity sensitivity
-## best 0.7394541   0.7333333        0.75
+## best 0.2605459        0.75   0.7333333
 ```
 
 ```r
@@ -609,7 +700,7 @@ threshold.dtree
 ```
 
 ```
-## [1] 0.7394541
+## [1] 0.2605459
 ```
 
 ```r
@@ -617,7 +708,7 @@ threshold.dtree
 #since it's to predict if the patient has diabetes
 
 #Typical cutoff value, 0.5
-confusionMatrix(as.factor(ifelse(dtree.pred1 >= 0.5, "neg", "pos")), 
+confusionMatrix(as.factor(ifelse(dtree.pred1 >= 0.5, "pos", "neg")), 
                 as.factor(test$diabetes))
 ```
 
@@ -653,7 +744,7 @@ confusionMatrix(as.factor(ifelse(dtree.pred1 >= 0.5, "neg", "pos")),
 
 ```r
 #Optimal cutoff value
-confusionMatrix(as.factor(ifelse(dtree.pred1 >= threshold.dtree, "neg", "pos")),
+confusionMatrix(as.factor(ifelse(dtree.pred1 >= threshold.dtree, "pos", "neg")),
                 as.factor(test$diabetes))
 ```
 
@@ -689,13 +780,13 @@ confusionMatrix(as.factor(ifelse(dtree.pred1 >= threshold.dtree, "neg", "pos")),
 
 ```r
 #Functions created by my own
-tp.dat.dtree <- tptnfpfn(test$diabetes,ifelse(dtree.pred1 >= threshold.dtree, "neg", "pos"))
+tp.dat.dtree <- tptnfpfn(test$diabetes,ifelse(dtree.pred1 >= threshold.dtree, "pos", "neg"))
 tp.dat.dtree
 ```
 
 ```
-##    TP FP TN FN
-## 1 110 20 60 40
+##   TP FP  TN FN
+## 1 60 40 110 20
 ```
 
 ```r
@@ -703,7 +794,7 @@ precision(tp.dat.dtree)
 ```
 
 ```
-## [1] 0.8461538
+## [1] 0.6
 ```
 
 ```r
@@ -711,7 +802,7 @@ recall(tp.dat.dtree)
 ```
 
 ```
-## [1] 0.7333333
+## [1] 0.75
 ```
 
 ```r
@@ -719,7 +810,7 @@ spec(tp.dat.dtree)
 ```
 
 ```
-## [1] 0.75
+## [1] 0.7333333
 ```
 
 ```r
@@ -727,18 +818,47 @@ f1.score(tp.dat.dtree)
 ```
 
 ```
-## [1] 0.7857143
+## [1] 0.6666667
 ```
 
 ```r
 roc.dat.dtree <- roc.func(test$diabetes, dtree.pred1)
-roc.dat.dtree %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline()
+roc.dat.dtree %>% head
 ```
 
-![](AUROC_files/figure-html/unnamed-chunk-7-2.png)<!-- -->
+```
+##   TPR FPR Spec Precision  f1score     cutoff
+## 1   1   1    0 0.3478261 0.516129 0.02205882
+## 2   1   1    0 0.3478261 0.516129 0.02205882
+## 3   1   1    0 0.3478261 0.516129 0.02205882
+## 4   1   1    0 0.3478261 0.516129 0.02205882
+## 5   1   1    0 0.3478261 0.516129 0.02205882
+## 6   1   1    0 0.3478261 0.516129 0.02205882
+```
 
 ```r
-auc.dtree <- auc.func(test$diabetes, dtree.pred1)
+roc.dat.dtree %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline() +
+  labs(title="ROC Curve")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-7-5.png)<!-- -->
+
+```r
+roc.dat.dtree %>% ggplot(aes(x=TPR, y=Spec)) + geom_line() +
+  labs(title = "Sensitivity vs Specificity") + xlab("Sensitivity") + ylab("Specificity")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-7-6.png)<!-- -->
+
+```r
+roc.dat.dtree %>% ggplot(aes(x=TPR, y=Precision)) + geom_line() +
+  labs(title = "Recall vs Precision") + xlab("Recall") + ylab("Precision")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-7-7.png)<!-- -->
+
+```r
+auc.dtree <- 1-auc.func(test$diabetes, dtree.pred1)
 auc.dtree
 ```
 
@@ -802,18 +922,55 @@ rf.pred %>% head
 
 ```r
 #probability for 1 = neg
-rf.pred1 <- rf.pred[,1]
+rf.pred1 <- rf.pred[,2]
 #if cutoff value is 0.5, and pred1 < 0.5, then it's 0 = pos for diabetes
 rf.pred1 %>% head
 ```
 
 ```
-## [1] 0.334 0.432 0.996 0.778 0.858 0.620
+## [1] 0.666 0.568 0.004 0.222 0.142 0.380
 ```
 
 ```r
 #roc built in R
-roc.curve.rf <- roc(test$diabetes, rf.pred1, levels=c("neg","pos"), positive="neg")
+pred.rf <- prediction(rf.pred1, test$diabetes, label.ordering = c("neg","pos"))
+
+#ROC curve
+perf <- performance(pred.rf, "tpr","fpr")
+plot(perf)
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
+```r
+#AUC value
+perf <- performance(pred.rf, "auc")
+perf@y.values[[1]]
+```
+
+```
+## [1] 0.8039583
+```
+
+```r
+#Sensitivity vs Specificity
+perf <- performance(pred.rf, "sens","spec")
+plot(perf)
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-8-2.png)<!-- -->
+
+```r
+#Precision vs Recall
+perf <- performance(pred.rf, "prec", "rec")
+plot(perf)
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-8-3.png)<!-- -->
+
+```r
+#Another way
+roc.curve.rf <- roc(test$diabetes, rf.pred1, levels=c("pos","neg"), positive="pos")
 ```
 
 ```
@@ -824,7 +981,7 @@ roc.curve.rf <- roc(test$diabetes, rf.pred1, levels=c("neg","pos"), positive="ne
 plot(roc.curve.rf)
 ```
 
-![](AUROC_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](AUROC_files/figure-html/unnamed-chunk-8-4.png)<!-- -->
 
 ```r
 auc(roc.curve.rf)
@@ -840,21 +997,25 @@ roc.curve.rf %>% coords("best", transpose=FALSE)
 
 ```
 ##      threshold specificity sensitivity
-## best     0.613   0.7266667       0.775
+## best     0.387       0.775   0.7266667
 ```
 
 ```r
+#Optimal Cutoff probability
 threshold.rf <- data.frame(roc.curve.rf %>% coords("best", transpose=FALSE))[,1]
 threshold.rf
 ```
 
 ```
-## [1] 0.613
+## [1] 0.387
 ```
 
 ```r
+#We would want higher probability of predicting "pos",
+#since it's to predict if the patient has diabetes
+
 #Typical cutoff value, 0.5
-confusionMatrix(as.factor(ifelse(rf.pred1 >= 0.5, "neg", "pos")), 
+confusionMatrix(as.factor(ifelse(rf.pred1 >= 0.5, "pos", "neg")), 
                 as.factor(test$diabetes))
 ```
 
@@ -890,7 +1051,7 @@ confusionMatrix(as.factor(ifelse(rf.pred1 >= 0.5, "neg", "pos")),
 
 ```r
 #Optimal cutoff value
-confusionMatrix(as.factor(ifelse(rf.pred1 >= threshold.rf, "neg", "pos")),
+confusionMatrix(as.factor(ifelse(rf.pred1 >= threshold.rf, "pos", "neg")),
                 as.factor(test$diabetes))
 ```
 
@@ -926,13 +1087,13 @@ confusionMatrix(as.factor(ifelse(rf.pred1 >= threshold.rf, "neg", "pos")),
 
 ```r
 #Functions created by my own
-tp.dat.rf <- tptnfpfn(test$diabetes,ifelse(rf.pred1 >= threshold.rf, "neg", "pos"))
+tp.dat.rf <- tptnfpfn(test$diabetes,ifelse(rf.pred1 >= threshold.rf, "pos", "neg"))
 tp.dat.rf
 ```
 
 ```
-##    TP FP TN FN
-## 1 109 18 62 41
+##   TP FP  TN FN
+## 1 62 41 109 18
 ```
 
 ```r
@@ -940,7 +1101,7 @@ precision(tp.dat.rf)
 ```
 
 ```
-## [1] 0.8582677
+## [1] 0.6019417
 ```
 
 ```r
@@ -948,7 +1109,7 @@ recall(tp.dat.rf)
 ```
 
 ```
-## [1] 0.7266667
+## [1] 0.775
 ```
 
 ```r
@@ -956,7 +1117,7 @@ spec(tp.dat.rf)
 ```
 
 ```
-## [1] 0.775
+## [1] 0.7266667
 ```
 
 ```r
@@ -964,18 +1125,47 @@ f1.score(tp.dat.rf)
 ```
 
 ```
-## [1] 0.7870036
+## [1] 0.6775956
 ```
 
 ```r
 roc.dat.rf <- roc.func(test$diabetes, rf.pred1)
-roc.dat.rf %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline()
+roc.dat.rf %>% head
 ```
 
-![](AUROC_files/figure-html/unnamed-chunk-8-2.png)<!-- -->
+```
+##   TPR       FPR       Spec Precision   f1score cutoff
+## 1   1 1.0000000 0.00000000 0.3478261 0.5161290  0.000
+## 2   1 1.0000000 0.00000000 0.3478261 0.5161290  0.000
+## 3   1 0.9866667 0.01333333 0.3508772 0.5194805  0.002
+## 4   1 0.9800000 0.02000000 0.3524229 0.5211726  0.004
+## 5   1 0.9800000 0.02000000 0.3524229 0.5211726  0.004
+## 6   1 0.9800000 0.02000000 0.3524229 0.5211726  0.004
+```
 
 ```r
-auc.rf <- auc.func(test$diabetes, rf.pred1)
+roc.dat.rf %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline() +
+  labs(title="ROC Curve")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-8-5.png)<!-- -->
+
+```r
+roc.dat.rf %>% ggplot(aes(x=TPR, y=Spec)) + geom_line() +
+  labs(title = "Sensitivity vs Specificity") + xlab("Sensitivity") + ylab("Specificity")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-8-6.png)<!-- -->
+
+```r
+roc.dat.rf %>% ggplot(aes(x=TPR, y=Precision)) + geom_line() +
+  labs(title = "Recall vs Precision") + xlab("Recall") + ylab("Precision")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-8-7.png)<!-- -->
+
+```r
+auc.rf <- 1-auc.func(test$diabetes, rf.pred1)
 auc.rf
 ```
 
@@ -1025,17 +1215,54 @@ glm.pred %>% head
 ```
 
 ```r
-glm.pred1 <- glm.pred[,1]
+glm.pred1 <- glm.pred[,2]
 glm.pred1 %>% head
 ```
 
 ```
-## [1] 0.2925566 0.2315000 0.9594701 0.9705438 0.7494887 0.6516137
+## [1] 0.70744344 0.76849996 0.04052991 0.02945619 0.25051129 0.34838631
 ```
 
 ```r
 #roc built in R
-roc.curve.glm <- roc(test$diabetes, glm.pred1, levels=c("neg","pos"), positive="neg")
+pred.glm <- prediction(glm.pred1, test$diabetes, label.ordering = c("neg","pos"))
+
+#ROC curve
+perf <- performance(pred.glm, "tpr","fpr")
+plot(perf)
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
+```r
+#AUC value
+perf <- performance(pred.glm, "auc")
+perf@y.values[[1]]
+```
+
+```
+## [1] 0.8334167
+```
+
+```r
+#Sensitivity vs Specificity
+perf <- performance(pred.glm, "sens","spec")
+plot(perf)
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-9-2.png)<!-- -->
+
+```r
+#Precision vs Recall
+perf <- performance(pred.glm, "prec", "rec")
+plot(perf)
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-9-3.png)<!-- -->
+
+```r
+#Another way
+roc.curve.glm <- roc(test$diabetes, glm.pred1, levels=c("pos","neg"), positive="pos")
 ```
 
 ```
@@ -1046,7 +1273,7 @@ roc.curve.glm <- roc(test$diabetes, glm.pred1, levels=c("neg","pos"), positive="
 plot(roc.curve.glm)
 ```
 
-![](AUROC_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+![](AUROC_files/figure-html/unnamed-chunk-9-4.png)<!-- -->
 
 ```r
 auc(roc.curve.glm)
@@ -1062,22 +1289,25 @@ roc.curve.glm %>% coords("best", transpose=FALSE)
 
 ```
 ##      threshold specificity sensitivity
-## best 0.6597458        0.74      0.8125
+## best 0.3402542      0.8125        0.74
 ```
 
 ```r
-#Optmial cutoff
+#Optimal Cutoff probability
 threshold.glm <- data.frame(roc.curve.glm %>% coords("best", transpose=FALSE))[,1]
 threshold.glm
 ```
 
 ```
-## [1] 0.6597458
+## [1] 0.3402542
 ```
 
 ```r
+#We would want higher probability of predicting "pos",
+#since it's to predict if the patient has diabetes
+
 #Typical cutoff value, 0.5
-confusionMatrix(as.factor(ifelse(glm.pred1 >= 0.5, "neg", "pos")), 
+confusionMatrix(as.factor(ifelse(glm.pred1 >= 0.5, "pos", "neg")), 
                 as.factor(test$diabetes))
 ```
 
@@ -1113,7 +1343,7 @@ confusionMatrix(as.factor(ifelse(glm.pred1 >= 0.5, "neg", "pos")),
 
 ```r
 #Optimal cutoff value
-confusionMatrix(as.factor(ifelse(glm.pred1 >= threshold.glm, "neg", "pos")),
+confusionMatrix(as.factor(ifelse(glm.pred1 >= threshold.glm, "pos", "neg")),
                 as.factor(test$diabetes))
 ```
 
@@ -1149,13 +1379,13 @@ confusionMatrix(as.factor(ifelse(glm.pred1 >= threshold.glm, "neg", "pos")),
 
 ```r
 #Functions created by my own
-tp.dat.glm <- tptnfpfn(test$diabetes,ifelse(glm.pred1 >= threshold.glm, "neg", "pos"))
+tp.dat.glm <- tptnfpfn(test$diabetes,ifelse(glm.pred1 >= threshold.glm, "pos", "neg"))
 tp.dat.glm
 ```
 
 ```
-##    TP FP TN FN
-## 1 111 15 65 39
+##   TP FP  TN FN
+## 1 65 39 111 15
 ```
 
 ```r
@@ -1163,7 +1393,7 @@ precision(tp.dat.glm)
 ```
 
 ```
-## [1] 0.8809524
+## [1] 0.625
 ```
 
 ```r
@@ -1171,7 +1401,7 @@ recall(tp.dat.glm)
 ```
 
 ```
-## [1] 0.74
+## [1] 0.8125
 ```
 
 ```r
@@ -1179,7 +1409,7 @@ spec(tp.dat.glm)
 ```
 
 ```
-## [1] 0.8125
+## [1] 0.74
 ```
 
 ```r
@@ -1187,18 +1417,47 @@ f1.score(tp.dat.glm)
 ```
 
 ```
-## [1] 0.8043478
+## [1] 0.7065217
 ```
 
 ```r
 roc.dat.glm <- roc.func(test$diabetes, glm.pred1)
-roc.dat.glm %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline()
+roc.dat.glm %>% head
 ```
 
-![](AUROC_files/figure-html/unnamed-chunk-9-2.png)<!-- -->
+```
+##   TPR       FPR        Spec Precision   f1score      cutoff
+## 1   1 1.0000000 0.000000000 0.3478261 0.5161290 0.001818656
+## 2   1 0.9933333 0.006666667 0.3493450 0.5177994 0.002150701
+## 3   1 0.9866667 0.013333333 0.3508772 0.5194805 0.003799825
+## 4   1 0.9800000 0.020000000 0.3524229 0.5211726 0.005665999
+## 5   1 0.9733333 0.026666667 0.3539823 0.5228758 0.013775829
+## 6   1 0.9666667 0.033333333 0.3555556 0.5245902 0.016604131
+```
 
 ```r
-auc.glm <- auc.func(test$diabetes, glm.pred1)
+roc.dat.glm %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline() +
+  labs(title="ROC Curve")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-9-5.png)<!-- -->
+
+```r
+roc.dat.glm %>% ggplot(aes(x=TPR, y=Spec)) + geom_line() +
+  labs(title = "Sensitivity vs Specificity") + xlab("Sensitivity") + ylab("Specificity")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-9-6.png)<!-- -->
+
+```r
+roc.dat.glm %>% ggplot(aes(x=TPR, y=Precision)) + geom_line() +
+  labs(title = "Recall vs Precision") + xlab("Recall") + ylab("Precision")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-9-7.png)<!-- -->
+
+```r
+auc.glm <- 1-auc.func(test$diabetes, glm.pred1)
 auc.glm
 ```
 
@@ -1261,17 +1520,54 @@ svm.pred %>% head
 ```
 
 ```r
-svm.pred1 <- svm.pred[,1]
+svm.pred1 <- svm.pred[,2]
 svm.pred1 %>% head
 ```
 
 ```
-## [1] 0.2364146 0.1315212 0.9281084 0.6177035 0.8339350 0.5749195
+## [1] 0.76358536 0.86847875 0.07189164 0.38229651 0.16606503 0.42508052
 ```
 
 ```r
 #roc built in R
-roc.curve.svm <- roc(test$diabetes, svm.pred1, levels=c("neg","pos"), positive="neg")
+pred.svm <- prediction(svm.pred1, test$diabetes, label.ordering = c("neg","pos"))
+
+#ROC curve
+perf <- performance(pred.svm, "tpr","fpr")
+plot(perf)
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+```r
+#AUC value
+perf <- performance(pred.svm, "auc")
+perf@y.values[[1]]
+```
+
+```
+## [1] 0.8229167
+```
+
+```r
+#Sensitivity vs Specificity
+perf <- performance(pred.svm, "sens","spec")
+plot(perf)
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-10-2.png)<!-- -->
+
+```r
+#Precision vs Recall
+perf <- performance(pred.svm, "prec", "rec")
+plot(perf)
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-10-3.png)<!-- -->
+
+```r
+#Another way
+roc.curve.svm <- roc(test$diabetes, svm.pred1, levels=c("pos","neg"), positive="pos")
 ```
 
 ```
@@ -1282,7 +1578,7 @@ roc.curve.svm <- roc(test$diabetes, svm.pred1, levels=c("neg","pos"), positive="
 plot(roc.curve.svm)
 ```
 
-![](AUROC_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](AUROC_files/figure-html/unnamed-chunk-10-4.png)<!-- -->
 
 ```r
 auc(roc.curve.svm)
@@ -1298,22 +1594,25 @@ roc.curve.svm %>% coords("best", transpose=FALSE)
 
 ```
 ##      threshold specificity sensitivity
-## best 0.4599544        0.86      0.6625
+## best 0.5400456      0.6625        0.86
 ```
 
 ```r
-#Optmial cutoff
+#Optimal Cutoff probability
 threshold.svm <- data.frame(roc.curve.svm %>% coords("best", transpose=FALSE))[,1]
 threshold.svm
 ```
 
 ```
-## [1] 0.4599544
+## [1] 0.5400456
 ```
 
 ```r
+#We would want higher probability of predicting "pos",
+#since it's to predict if the patient has diabetes
+
 #Typical cutoff value, 0.5
-confusionMatrix(as.factor(ifelse(glm.pred1 >= 0.5, "neg", "pos")), 
+confusionMatrix(as.factor(ifelse(svm.pred1 >= 0.5, "pos", "neg")), 
                 as.factor(test$diabetes))
 ```
 
@@ -1322,26 +1621,26 @@ confusionMatrix(as.factor(ifelse(glm.pred1 >= 0.5, "neg", "pos")),
 ## 
 ##           Reference
 ## Prediction neg pos
-##        neg 130  30
-##        pos  20  50
+##        neg 122  25
+##        pos  28  55
 ##                                           
-##                Accuracy : 0.7826          
-##                  95% CI : (0.7236, 0.8341)
+##                Accuracy : 0.7696          
+##                  95% CI : (0.7097, 0.8224)
 ##     No Information Rate : 0.6522          
-##     P-Value [Acc > NIR] : 1.156e-05       
+##     P-Value [Acc > NIR] : 7.748e-05       
 ##                                           
-##                   Kappa : 0.5064          
+##                   Kappa : 0.4965          
 ##                                           
-##  Mcnemar's Test P-Value : 0.2031          
+##  Mcnemar's Test P-Value : 0.7835          
 ##                                           
-##             Sensitivity : 0.8667          
-##             Specificity : 0.6250          
-##          Pos Pred Value : 0.8125          
-##          Neg Pred Value : 0.7143          
+##             Sensitivity : 0.8133          
+##             Specificity : 0.6875          
+##          Pos Pred Value : 0.8299          
+##          Neg Pred Value : 0.6627          
 ##              Prevalence : 0.6522          
-##          Detection Rate : 0.5652          
-##    Detection Prevalence : 0.6957          
-##       Balanced Accuracy : 0.7458          
+##          Detection Rate : 0.5304          
+##    Detection Prevalence : 0.6391          
+##       Balanced Accuracy : 0.7504          
 ##                                           
 ##        'Positive' Class : neg             
 ## 
@@ -1349,7 +1648,7 @@ confusionMatrix(as.factor(ifelse(glm.pred1 >= 0.5, "neg", "pos")),
 
 ```r
 #Optimal cutoff value
-confusionMatrix(as.factor(ifelse(glm.pred1 >= threshold.svm, "neg", "pos")),
+confusionMatrix(as.factor(ifelse(svm.pred1 >= threshold.svm, "pos", "neg")),
                 as.factor(test$diabetes))
 ```
 
@@ -1358,26 +1657,26 @@ confusionMatrix(as.factor(ifelse(glm.pred1 >= threshold.svm, "neg", "pos")),
 ## 
 ##           Reference
 ## Prediction neg pos
-##        neg 134  32
-##        pos  16  48
+##        neg 129  27
+##        pos  21  53
 ##                                          
 ##                Accuracy : 0.7913         
 ##                  95% CI : (0.733, 0.8419)
 ##     No Information Rate : 0.6522         
 ##     P-Value [Acc > NIR] : 2.878e-06      
 ##                                          
-##                   Kappa : 0.5175         
+##                   Kappa : 0.5318         
 ##                                          
-##  Mcnemar's Test P-Value : 0.03038        
+##  Mcnemar's Test P-Value : 0.4705         
 ##                                          
-##             Sensitivity : 0.8933         
-##             Specificity : 0.6000         
-##          Pos Pred Value : 0.8072         
-##          Neg Pred Value : 0.7500         
+##             Sensitivity : 0.8600         
+##             Specificity : 0.6625         
+##          Pos Pred Value : 0.8269         
+##          Neg Pred Value : 0.7162         
 ##              Prevalence : 0.6522         
-##          Detection Rate : 0.5826         
-##    Detection Prevalence : 0.7217         
-##       Balanced Accuracy : 0.7467         
+##          Detection Rate : 0.5609         
+##    Detection Prevalence : 0.6783         
+##       Balanced Accuracy : 0.7612         
 ##                                          
 ##        'Positive' Class : neg            
 ## 
@@ -1385,13 +1684,13 @@ confusionMatrix(as.factor(ifelse(glm.pred1 >= threshold.svm, "neg", "pos")),
 
 ```r
 #Functions created by my own
-tp.dat.svm <- tptnfpfn(test$diabetes,ifelse(svm.pred1 >= threshold.svm, "neg", "pos"))
+tp.dat.svm <- tptnfpfn(test$diabetes,ifelse(svm.pred1 >= threshold.svm, "pos", "neg"))
 tp.dat.svm
 ```
 
 ```
-##    TP FP TN FN
-## 1 129 27 53 21
+##   TP FP  TN FN
+## 1 53 21 129 27
 ```
 
 ```r
@@ -1399,7 +1698,7 @@ precision(tp.dat.svm)
 ```
 
 ```
-## [1] 0.8269231
+## [1] 0.7162162
 ```
 
 ```r
@@ -1407,7 +1706,7 @@ recall(tp.dat.svm)
 ```
 
 ```
-## [1] 0.86
+## [1] 0.6625
 ```
 
 ```r
@@ -1415,7 +1714,7 @@ spec(tp.dat.svm)
 ```
 
 ```
-## [1] 0.6625
+## [1] 0.86
 ```
 
 ```r
@@ -1423,18 +1722,47 @@ f1.score(tp.dat.svm)
 ```
 
 ```
-## [1] 0.8431373
+## [1] 0.6883117
 ```
 
 ```r
 roc.dat.svm <- roc.func(test$diabetes, svm.pred1)
-roc.dat.svm %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline()
+roc.dat.svm %>% head
 ```
 
-![](AUROC_files/figure-html/unnamed-chunk-10-2.png)<!-- -->
+```
+##      TPR       FPR        Spec Precision   f1score     cutoff
+## 1 1.0000 1.0000000 0.000000000 0.3478261 0.5161290 0.04478559
+## 2 1.0000 0.9933333 0.006666667 0.3493450 0.5177994 0.05692024
+## 3 0.9875 0.9933333 0.006666667 0.3464912 0.5129870 0.05777457
+## 4 0.9875 0.9866667 0.013333333 0.3480176 0.5146580 0.05951762
+## 5 0.9875 0.9800000 0.020000000 0.3495575 0.5163399 0.05999010
+## 6 0.9875 0.9733333 0.026666667 0.3511111 0.5180328 0.06090870
+```
 
 ```r
-auc.svm <- auc.func(test$diabetes, svm.pred1)
+roc.dat.svm %>% ggplot(aes(x=FPR, y=TPR)) + geom_line() + geom_abline() +
+  labs(title="ROC Curve")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-10-5.png)<!-- -->
+
+```r
+roc.dat.svm %>% ggplot(aes(x=TPR, y=Spec)) + geom_line() +
+  labs(title = "Sensitivity vs Specificity") + xlab("Sensitivity") + ylab("Specificity")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-10-6.png)<!-- -->
+
+```r
+roc.dat.svm %>% ggplot(aes(x=TPR, y=Precision)) + geom_line() +
+  labs(title = "Recall vs Precision") + xlab("Recall") + ylab("Precision")
+```
+
+![](AUROC_files/figure-html/unnamed-chunk-10-7.png)<!-- -->
+
+```r
+auc.svm <- 1-auc.func(test$diabetes, svm.pred1)
 auc.svm
 ```
 
@@ -1465,49 +1793,200 @@ roc.dat %>% ggplot(aes(x=FPR, y=TPR, col=model)) +
 ![](AUROC_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
 
 ```r
-#Optimal Cutoff Values
+#Optimal Cutoff Values by models and by metrics
 
 #Decision Tree
+
+#Optimal Cutoff for Sensitivity and Specificity
+roc.dat.dtree$cutoff[which.max(roc.dat.dtree$TPR + roc.dat.dtree$Spec)]
+```
+
+```
+## [1] 0.2903226
+```
+
+```r
+#Optimal Cutoff for Precision and Recall
+roc.dat.dtree$cutoff[which.max(roc.dat.dtree$TPR + roc.dat.dtree$Precision)]
+```
+
+```
+## [1] 0.1428571
+```
+
+```r
+roc.dat.dtree %>% filter(cutoff == roc.dat.dtree$cutoff[which.max(roc.dat.dtree$TPR + roc.dat.dtree$Spec)]) %>% head
+```
+
+```
+##    TPR       FPR      Spec Precision   f1score    cutoff         model
+## 1 0.75 0.2666667 0.7333333       0.6 0.6666667 0.2903226 Decision Tree
+## 2 0.75 0.2666667 0.7333333       0.6 0.6666667 0.2903226 Decision Tree
+## 3 0.75 0.2666667 0.7333333       0.6 0.6666667 0.2903226 Decision Tree
+## 4 0.75 0.2666667 0.7333333       0.6 0.6666667 0.2903226 Decision Tree
+## 5 0.75 0.2666667 0.7333333       0.6 0.6666667 0.2903226 Decision Tree
+## 6 0.75 0.2666667 0.7333333       0.6 0.6666667 0.2903226 Decision Tree
+```
+
+```r
+roc.dat.dtree %>% filter(cutoff == roc.dat.dtree$cutoff[which.max(roc.dat.dtree$TPR + roc.dat.dtree$Precision)]) %>% head
+```
+
+```
+##      TPR  FPR Spec Precision   f1score    cutoff         model
+## 1 0.8625 0.48 0.52 0.4893617 0.6244344 0.1428571 Decision Tree
+## 2 0.8625 0.48 0.52 0.4893617 0.6244344 0.1428571 Decision Tree
+## 3 0.8625 0.48 0.52 0.4893617 0.6244344 0.1428571 Decision Tree
+## 4 0.8625 0.48 0.52 0.4893617 0.6244344 0.1428571 Decision Tree
+## 5 0.8625 0.48 0.52 0.4893617 0.6244344 0.1428571 Decision Tree
+## 6 0.8625 0.48 0.52 0.4893617 0.6244344 0.1428571 Decision Tree
+```
+
+```r
 roc.curve.dtree %>% 
   coords("best",transpose=FALSE)
 ```
 
 ```
 ##      threshold specificity sensitivity
-## best 0.7394541   0.7333333        0.75
+## best 0.2605459        0.75   0.7333333
 ```
 
 ```r
 #Random Forest
+
+roc.dat.rf$cutoff[which.max(roc.dat.rf$TPR + roc.dat.rf$Spec)]
+```
+
+```
+## [1] 0.39
+```
+
+```r
+roc.dat.rf$cutoff[which.max(roc.dat.rf$TPR + roc.dat.rf$Precision)]
+```
+
+```
+## [1] 0.148
+```
+
+```r
+roc.dat.rf %>% filter(cutoff == roc.dat.rf$cutoff[which.max(roc.dat.rf$TPR + roc.dat.rf$Spec)])
+```
+
+```
+##     TPR       FPR      Spec Precision   f1score cutoff         model
+## 1 0.775 0.2733333 0.7266667 0.6019417 0.6775956   0.39 Random Forest
+```
+
+```r
+roc.dat.rf %>% filter(cutoff == roc.dat.rf$cutoff[which.max(roc.dat.rf$TPR + roc.dat.rf$Precision)])
+```
+
+```
+##    TPR  FPR Spec Precision   f1score cutoff         model
+## 1 0.95 0.58 0.42 0.4662577 0.6255144  0.148 Random Forest
+## 2 0.95 0.58 0.42 0.4662577 0.6255144  0.148 Random Forest
+```
+
+```r
 roc.curve.rf %>% 
   coords("best",transpose=FALSE)
 ```
 
 ```
 ##      threshold specificity sensitivity
-## best     0.613   0.7266667       0.775
+## best     0.387       0.775   0.7266667
 ```
 
 ```r
 #Logistic Regression
+roc.dat.glm$cutoff[which.max(roc.dat.glm$TPR + roc.dat.glm$Spec)]
+```
+
+```
+## [1] 0.3414033
+```
+
+```r
+roc.dat.glm$cutoff[which.max(roc.dat.glm$TPR + roc.dat.glm$Precision)]
+```
+
+```
+## [1] 0.3414033
+```
+
+```r
+roc.dat.glm %>% filter(cutoff == roc.dat.glm$cutoff[which.max(roc.dat.glm$TPR + roc.dat.glm$Spec)])
+```
+
+```
+##      TPR  FPR Spec Precision   f1score    cutoff               model
+## 1 0.8125 0.26 0.74     0.625 0.7065217 0.3414033 Logistic Regression
+```
+
+```r
+roc.dat.glm %>% filter(cutoff == roc.dat.glm$cutoff[which.max(roc.dat.glm$TPR + roc.dat.glm$Precision)])
+```
+
+```
+##      TPR  FPR Spec Precision   f1score    cutoff               model
+## 1 0.8125 0.26 0.74     0.625 0.7065217 0.3414033 Logistic Regression
+```
+
+```r
 roc.curve.glm %>% 
   coords("best",transpose=FALSE)
 ```
 
 ```
 ##      threshold specificity sensitivity
-## best 0.6597458        0.74      0.8125
+## best 0.3402542      0.8125        0.74
 ```
 
 ```r
 #SVM
+roc.dat.svm$cutoff[which.max(roc.dat.svm$TPR + roc.dat.svm$Spec)]
+```
+
+```
+## [1] 0.5406392
+```
+
+```r
+roc.dat.svm$cutoff[which.max(roc.dat.svm$TPR + roc.dat.svm$Precision)]
+```
+
+```
+## [1] 0.1485406
+```
+
+```r
+roc.dat.svm %>% filter(cutoff == roc.dat.svm$cutoff[which.max(roc.dat.svm$TPR + roc.dat.svm$Spec)])
+```
+
+```
+##      TPR  FPR Spec Precision   f1score    cutoff        model
+## 1 0.6625 0.14 0.86 0.7162162 0.6883117 0.5406392 SVM with RBF
+```
+
+```r
+roc.dat.svm %>% filter(cutoff == roc.dat.svm$cutoff[which.max(roc.dat.svm$TPR + roc.dat.svm$Precision)])
+```
+
+```
+##     TPR FPR Spec Precision   f1score    cutoff        model
+## 1 0.925 0.5  0.5 0.4966443 0.6462882 0.1485406 SVM with RBF
+```
+
+```r
 roc.curve.svm %>% 
   coords("best",transpose=FALSE)
 ```
 
 ```
 ##      threshold specificity sensitivity
-## best 0.4599544        0.86      0.6625
+## best 0.5400456      0.6625        0.86
 ```
 
 ```r
@@ -1544,23 +2023,108 @@ auc.svm
 ```
 
 ```r
-#I will choose model that has the greatest value of AUC, and pick the optimal cutoff value for the model, even if this model has less accuracy than others. 
-
-auc.dat <- data.frame(dtree = auc.dtree,
-                      rf = auc.rf,
-                      glm = auc.glm,
-                      svm = auc.svm)
-
-which.max(auc.dat) %>% names
+table(train$diabetes)
 ```
 
 ```
-## [1] "glm"
+## 
+## neg pos 
+## 350 188
 ```
 
 ```r
-#With Optimal cutoff value for the best model
-confusionMatrix(as.factor(ifelse(glm.pred1 >= threshold.glm, "neg", "pos")),
+table(test$diabetes)
+```
+
+```
+## 
+## neg pos 
+## 150  80
+```
+
+```r
+#Since the dataset is an imablanced data, so I will choose the model by the best cutoff for Precision and Recall, even if the model has less accuracy and less AUC values than others. 
+
+#So I will see the f1 score
+dtree.cutoff <- roc.dat.dtree$cutoff[which.max(roc.dat.dtree$f1score)]
+rf.cutoff <- roc.dat.rf$cutoff[which.max(roc.dat.rf$f1score)]
+glm.cutoff <- roc.dat.glm$cutoff[which.max(roc.dat.glm$f1score)]
+svm.cutoff <- roc.dat.svm$cutoff[which.max(roc.dat.svm$f1score)]
+
+#Confusion Matrix with Optimal cutoff value
+confusionMatrix(as.factor(ifelse(dtree.pred1 >= dtree.cutoff, "pos", "neg")),
+                as.factor(test$diabetes))
+```
+
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction neg pos
+##        neg 110  20
+##        pos  40  60
+##                                           
+##                Accuracy : 0.7391          
+##                  95% CI : (0.6773, 0.7946)
+##     No Information Rate : 0.6522          
+##     P-Value [Acc > NIR] : 0.002949        
+##                                           
+##                   Kappa : 0.4567          
+##                                           
+##  Mcnemar's Test P-Value : 0.014171        
+##                                           
+##             Sensitivity : 0.7333          
+##             Specificity : 0.7500          
+##          Pos Pred Value : 0.8462          
+##          Neg Pred Value : 0.6000          
+##              Prevalence : 0.6522          
+##          Detection Rate : 0.4783          
+##    Detection Prevalence : 0.5652          
+##       Balanced Accuracy : 0.7417          
+##                                           
+##        'Positive' Class : neg             
+## 
+```
+
+```r
+#Optimal cutoff value
+confusionMatrix(as.factor(ifelse(rf.pred1 >= rf.cutoff, "pos", "neg")),
+                as.factor(test$diabetes))
+```
+
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction neg pos
+##        neg 109  18
+##        pos  41  62
+##                                           
+##                Accuracy : 0.7435          
+##                  95% CI : (0.6819, 0.7986)
+##     No Information Rate : 0.6522          
+##     P-Value [Acc > NIR] : 0.001872        
+##                                           
+##                   Kappa : 0.4701          
+##                                           
+##  Mcnemar's Test P-Value : 0.004181        
+##                                           
+##             Sensitivity : 0.7267          
+##             Specificity : 0.7750          
+##          Pos Pred Value : 0.8583          
+##          Neg Pred Value : 0.6019          
+##              Prevalence : 0.6522          
+##          Detection Rate : 0.4739          
+##    Detection Prevalence : 0.5522          
+##       Balanced Accuracy : 0.7508          
+##                                           
+##        'Positive' Class : neg             
+## 
+```
+
+```r
+#Optimal cutoff value
+confusionMatrix(as.factor(ifelse(glm.pred1 >= glm.cutoff, "pos", "neg")),
                 as.factor(test$diabetes))
 ```
 
@@ -1592,4 +2156,86 @@ confusionMatrix(as.factor(ifelse(glm.pred1 >= threshold.glm, "neg", "pos")),
 ##                                          
 ##        'Positive' Class : neg            
 ## 
+```
+
+```r
+#Optimal cutoff value
+confusionMatrix(as.factor(ifelse(svm.pred1 >= svm.cutoff, "pos", "neg")),
+                as.factor(test$diabetes))
+```
+
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction neg pos
+##        neg 129  27
+##        pos  21  53
+##                                          
+##                Accuracy : 0.7913         
+##                  95% CI : (0.733, 0.8419)
+##     No Information Rate : 0.6522         
+##     P-Value [Acc > NIR] : 2.878e-06      
+##                                          
+##                   Kappa : 0.5318         
+##                                          
+##  Mcnemar's Test P-Value : 0.4705         
+##                                          
+##             Sensitivity : 0.8600         
+##             Specificity : 0.6625         
+##          Pos Pred Value : 0.8269         
+##          Neg Pred Value : 0.7162         
+##              Prevalence : 0.6522         
+##          Detection Rate : 0.5609         
+##    Detection Prevalence : 0.6783         
+##       Balanced Accuracy : 0.7612         
+##                                          
+##        'Positive' Class : neg            
+## 
+```
+
+```r
+pred.f1score <- data.frame(dtree = max(roc.dat.dtree$f1score),
+                           rf = max(roc.dat.rf$f1score),
+                           glm = max(roc.dat.glm$f1score),
+                           svm = max(roc.dat.svm$f1score))
+
+pred.f1score
+```
+
+```
+##       dtree        rf       glm       svm
+## 1 0.6666667 0.6775956 0.7065217 0.6883117
+```
+
+```r
+which.max(pred.f1score) %>% names
+```
+
+```
+## [1] "glm"
+```
+
+```r
+#glm seems to be the best model for imbalanaced dataset
+
+#with auc
+auc.dat <- data.frame(dtree = auc.dtree,
+                      rf = auc.rf,
+                      glm = auc.glm,
+                      svm = auc.svm)
+auc.dat
+```
+
+```
+##       dtree        rf       glm       svm
+## 1 0.7800833 0.8039583 0.8334167 0.8229167
+```
+
+```r
+which.max(auc.dat) %>% names
+```
+
+```
+## [1] "glm"
 ```
