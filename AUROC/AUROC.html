@@ -385,14 +385,14 @@ $(document).ready(function () {
 <div id="i-suppose" class="section level4">
 <h4>I suppose…</h4>
 </div>
-<div id="is-always-positive-for-example-not-fraud-not-disease-or-some-one-of-binary-value-that-has-more-obs-than-the-obs-of-the-other-factor-levels." class="section level4">
-<h4>1 is always positive, for example, “not Fraud”, “not Disease”, or some one of binary value that has more obs than the obs of the other factor levels.</h4>
+<div id="is-always-positive-for-example-fraud-disease-or-some-one-of-binary-value-that-has-less-obs-than-the-obs-of-the-other-factor-levels-so-that-we-want-to-predict-well." class="section level4">
+<h4>1 is always positive, for example, “Fraud”, “Disease”, or some one of binary value that has less obs than the obs of the other factor levels, so that we want to predict well.</h4>
 </div>
-<div id="is-always-negative-for-example-fraud-disease-or-some-one-of-binary-value-that-has-less-obs-than-the-obs-of-the-other-factor-levels-which-we-might-want-to-predict-well." class="section level4">
-<h4>0 is always negative, for example, “Fraud”, “Disease”, or some one of binary value that has less obs than the obs of the other factor levels, which we might want to predict well.</h4>
+<div id="is-always-negative-for-example-not-fraud-not-disease-or-some-one-of-binary-value-that-has-less-obs-than-the-obs-of-the-other-factor-levels." class="section level4">
+<h4>0 is always negative, for example, “not Fraud”, “not Disease”, or some one of binary value that has less obs than the obs of the other factor levels.</h4>
 </div>
-<div id="thorough-cv-process-and-tuning-parameters-have-been-skipped-since-this-will-focus-on-roc-and-auc" class="section level4">
-<h4>Thorough CV process and tuning parameters have been skipped since this will focus on ROC and AUC</h4>
+<div id="thorough-cv-process-and-tuning-parameters-have-been-skipped-since-this-will-focus-on-classification-metrics." class="section level4">
+<h4>Thorough CV process and tuning parameters have been skipped since this will focus on Classification metrics.</h4>
 <pre class="r"><code>library(pROC)</code></pre>
 <pre><code>## Type 'citation(&quot;pROC&quot;)' for a citation.</code></pre>
 <pre><code>## 
@@ -447,8 +447,8 @@ table(target, pred)</code></pre>
 ## target      Fraud not Fraud
 ##   Fraud         7        47
 ##   not Fraud    42       904</code></pre>
-<pre class="r"><code>#positive = not Fraud = 1
-#negative = Fraud = 0
+<pre class="r"><code>#positive = Fraud = 1
+#negative = not Fraud = 0
 
 #This function should have same levels for the both target and pred variable
 tptnfpfn &lt;- function(x,y){
@@ -595,7 +595,7 @@ roc.func &lt;- function(target,pred){
   return(dummy)
 }
 
-#This auc function is not created by my own. 
+#This auc function is from below link. 
 #Refer to 
 #https://mbq.me/blog/augh-roc/
 #a little changes is applied into the codes from above link
@@ -713,7 +713,9 @@ pima %&gt;% summary</code></pre>
 ##           
 ##           
 ## </code></pre>
-<pre class="r"><code>split.indx &lt;- createDataPartition(pima$diabetes, p=0.7, list=FALSE)
+<pre class="r"><code>#Let's say we want to focus on predicting diabetes patients
+
+split.indx &lt;- createDataPartition(pima$diabetes, p=0.7, list=FALSE)
 
 train &lt;- pima[split.indx,]
 test &lt;- pima[-split.indx,]</code></pre>
@@ -915,7 +917,7 @@ roc.dat.dtree %&gt;% head</code></pre>
 <pre class="r"><code>auc.dtree &lt;- 1-auc.func(test$diabetes, dtree.pred1)
 auc.dtree</code></pre>
 <pre><code>## [1] 0.7800833</code></pre>
-<pre class="r"><code>#Decision Tree
+<pre class="r"><code>#Random Forest
 rf &lt;- model(&quot;rf&quot;,train, control, grid=NULL, metric=&quot;AUC&quot;, tuneLength=10)</code></pre>
 <pre><code>## note: only 7 unique complexity parameters in default grid. Truncating the grid to 7 .</code></pre>
 <pre class="r"><code>rf</code></pre>
@@ -1662,7 +1664,7 @@ pred.f1score</code></pre>
 ## 1 0.6666667 0.6775956 0.7065217 0.6883117</code></pre>
 <pre class="r"><code>which.max(pred.f1score) %&gt;% names</code></pre>
 <pre><code>## [1] &quot;glm&quot;</code></pre>
-<pre class="r"><code>#glm seems to be the best model for imbalanaced dataset
+<pre class="r"><code>#glm seems to be the best model for this imbalanaced dataset
 
 #with auc
 auc.dat &lt;- data.frame(dtree = auc.dtree,

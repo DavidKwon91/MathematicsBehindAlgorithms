@@ -15,12 +15,12 @@ editor_options:
 
 #### I suppose... 
 
-#### 1 is always positive, for example, "not Fraud", "not Disease", or some one of binary value that has more obs than the obs of the other factor levels.
+#### 1 is always positive, for example, "Fraud", "Disease", or some one of binary value that has less obs than the obs of the other factor levels, so that we want to predict well. 
 
-#### 0 is always negative, for example, "Fraud", "Disease", or some one of binary value that has less obs than the obs of the other factor levels, which we might want to predict well. 
+#### 0 is always negative, for example, "not Fraud", "not Disease", or some one of binary value that has less obs than the obs of the other factor levels. 
 
 
-#### Thorough CV process and tuning parameters have been skipped since this will focus on ROC and AUC
+#### Thorough CV process and tuning parameters have been skipped since this will focus on Classification metrics. 
 
 
 ```r
@@ -145,8 +145,8 @@ table(target, pred)
 ```
 
 ```r
-#positive = not Fraud = 1
-#negative = Fraud = 0
+#positive = Fraud = 1
+#negative = not Fraud = 0
 
 #This function should have same levels for the both target and pred variable
 tptnfpfn <- function(x,y){
@@ -341,7 +341,7 @@ roc.func <- function(target,pred){
   return(dummy)
 }
 
-#This auc function is not created by my own. 
+#This auc function is from below link. 
 #Refer to 
 #https://mbq.me/blog/augh-roc/
 #a little changes is applied into the codes from above link
@@ -526,6 +526,8 @@ pima %>% summary
 ```
 
 ```r
+#Let's say we want to focus on predicting diabetes patients
+
 split.indx <- createDataPartition(pima$diabetes, p=0.7, list=FALSE)
 
 train <- pima[split.indx,]
@@ -868,7 +870,7 @@ auc.dtree
 
 
 ```r
-#Decision Tree
+#Random Forest
 rf <- model("rf",train, control, grid=NULL, metric="AUC", tuneLength=10)
 ```
 
@@ -2217,7 +2219,7 @@ which.max(pred.f1score) %>% names
 ```
 
 ```r
-#glm seems to be the best model for imbalanaced dataset
+#glm seems to be the best model for this imbalanaced dataset
 
 #with auc
 auc.dat <- data.frame(dtree = auc.dtree,
