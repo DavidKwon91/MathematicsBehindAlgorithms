@@ -14,45 +14,15 @@ editor_options:
 
 ```r
 library(dplyr)
-```
-
-```
-## 
-## Attaching package: 'dplyr'
-```
-
-```
-## The following objects are masked from 'package:stats':
-## 
-##     filter, lag
-```
-
-```
-## The following objects are masked from 'package:base':
-## 
-##     intersect, setdiff, setequal, union
-```
-
-```r
+library(tidyr)
+library(ggplot2)
 library(car)
 ```
 
-```
-## Loading required package: carData
-```
 
-```
-## 
-## Attaching package: 'car'
-```
-
-```
-## The following object is masked from 'package:dplyr':
-## 
-##     recode
-```
 
 ```r
+data(mtcars)
 mtcars %>% head
 ```
 
@@ -70,112 +40,9 @@ mtcars %>% head
 #vs : V-shaped Engine = 0, straight = 1
 #am : Transmission : automatic = 0, manual = 1
 
-#Lets remove cateogrical since we are going to deal with only continuous variables
-mtcars <- mtcars %>% subset(select = -c(vs, am))
-
-base.lm <- lm(mpg~., mtcars)
-summary(base.lm)
-```
-
-```
-## 
-## Call:
-## lm(formula = mpg ~ ., data = mtcars)
-## 
-## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -3.0230 -1.6874 -0.4109  0.9640  5.4400 
-## 
-## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept) 17.88964   17.81996   1.004   0.3259  
-## cyl         -0.41460    0.95765  -0.433   0.6691  
-## disp         0.01293    0.01758   0.736   0.4694  
-## hp          -0.02085    0.02072  -1.006   0.3248  
-## drat         1.10110    1.59806   0.689   0.4977  
-## wt          -3.92065    1.86174  -2.106   0.0463 *
-## qsec         0.54146    0.62122   0.872   0.3924  
-## gear         1.23321    1.40238   0.879   0.3883  
-## carb        -0.25510    0.81563  -0.313   0.7573  
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-## 
-## Residual standard error: 2.622 on 23 degrees of freedom
-## Multiple R-squared:  0.8596,	Adjusted R-squared:  0.8107 
-## F-statistic:  17.6 on 8 and 23 DF,  p-value: 4.226e-08
-```
-
-```r
-par(mfrow=c(2,2))
-plot(base.lm)
-```
-
-![](LinearRegression_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
-
-```r
-par(mfrow=c(1,1))
-
-vif(base.lm)
-```
-
-```
-##       cyl      disp        hp      drat        wt      qsec      gear 
-## 13.189675 21.402534  9.102122  3.292037 14.962903  5.556476  4.827297 
-##      carb 
-##  7.825779
-```
-
-```r
-cor(mtcars)
-```
-
-```
-##             mpg        cyl       disp         hp        drat         wt
-## mpg   1.0000000 -0.8521620 -0.8475514 -0.7761684  0.68117191 -0.8676594
-## cyl  -0.8521620  1.0000000  0.9020329  0.8324475 -0.69993811  0.7824958
-## disp -0.8475514  0.9020329  1.0000000  0.7909486 -0.71021393  0.8879799
-## hp   -0.7761684  0.8324475  0.7909486  1.0000000 -0.44875912  0.6587479
-## drat  0.6811719 -0.6999381 -0.7102139 -0.4487591  1.00000000 -0.7124406
-## wt   -0.8676594  0.7824958  0.8879799  0.6587479 -0.71244065  1.0000000
-## qsec  0.4186840 -0.5912421 -0.4336979 -0.7082234  0.09120476 -0.1747159
-## gear  0.4802848 -0.4926866 -0.5555692 -0.1257043  0.69961013 -0.5832870
-## carb -0.5509251  0.5269883  0.3949769  0.7498125 -0.09078980  0.4276059
-##             qsec       gear       carb
-## mpg   0.41868403  0.4802848 -0.5509251
-## cyl  -0.59124207 -0.4926866  0.5269883
-## disp -0.43369788 -0.5555692  0.3949769
-## hp   -0.70822339 -0.1257043  0.7498125
-## drat  0.09120476  0.6996101 -0.0907898
-## wt   -0.17471588 -0.5832870  0.4276059
-## qsec  1.00000000 -0.2126822 -0.6562492
-## gear -0.21268223  1.0000000  0.2740728
-## carb -0.65624923  0.2740728  1.0000000
-```
-
-```r
-#disp, cyl, wt, hp removed by multicollinearity, which will be discussed below. 
-
-mtcars1 <- mtcars %>% subset(select = -c(disp, cyl, wt, hp))
-
-lm1 <- lm(mpg~.,mtcars1)
-vif(lm1)
-```
-
-```
-##     drat     qsec     gear     carb 
-## 2.389764 1.784365 2.563259 1.954820
-```
-
-```r
-par(mfrow=c(2,2))
-plot(lm1)
-```
-
-![](LinearRegression_files/figure-html/unnamed-chunk-1-2.png)<!-- -->
-
-```r
-par(mfrow=c(1,1))
-
+#Lets remove cateogrical variables since we are going to deal with only continuous variables
+mtcars1 <- mtcars %>% subset(select = -c(cyl, vs, am, gear, carb))
+lm1 <- lm(mpg~., mtcars1)
 summary(lm1)
 ```
 
@@ -186,30 +53,79 @@ summary(lm1)
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -7.4559 -2.3798  0.2245  1.8186  5.8781 
+## -3.5404 -1.6701 -0.4264  1.1320  5.4996 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)  -6.3349     8.7057  -0.728  0.47308    
-## drat          3.4649     1.5547   2.229  0.03436 *  
-## qsec          0.3676     0.4020   0.914  0.36860    
-## gear          3.6403     1.1669   3.120  0.00428 ** 
-## carb         -2.1405     0.4655  -4.598 8.96e-05 ***
+##             Estimate Std. Error t value Pr(>|t|)   
+## (Intercept) 16.53357   10.96423   1.508  0.14362   
+## disp         0.00872    0.01119   0.779  0.44281   
+## hp          -0.02060    0.01528  -1.348  0.18936   
+## drat         2.01578    1.30946   1.539  0.13579   
+## wt          -4.38546    1.24343  -3.527  0.00158 **
+## qsec         0.64015    0.45934   1.394  0.17523   
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 2.994 on 27 degrees of freedom
-## Multiple R-squared:  0.7851,	Adjusted R-squared:  0.7532 
-## F-statistic: 24.66 on 4 and 27 DF,  p-value: 1.123e-08
+## Residual standard error: 2.558 on 26 degrees of freedom
+## Multiple R-squared:  0.8489,	Adjusted R-squared:  0.8199 
+## F-statistic: 29.22 on 5 and 26 DF,  p-value: 6.892e-10
+```
+
+```r
+par(mfrow=c(2,2))
+plot(lm1)
+```
+
+![](LinearRegression_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
+
+```r
+par(mfrow=c(1,1))
 ```
 
 Investigating Linear Regression
 ===============
 
+Simple linear regression is defined as below, 
+
+$$Y_i = E\left(Y|X = x\right) + e_i = \beta_0 + \beta_1*x + \hat e_i$$
+where $$e_i$$ is the random error term. 
+
+We want to minimize the difference between the actual value of $y_i$ and the predicted value of $\hat y_i$. 
+
+The difference is called the residual and defined as below, 
+$$\hat e_i = y_i - \hat y_i$$
+where 
+$$\hat y_i = b_0 + b_1 x_i$$
+
+$b_0$ and $b_1$ are chosen through the method of least squares, which is to minimize the sum of squared residuals (RSS). 
+
+$$RSS = \sum_{i=1}^{n} \hat e_{i}^{2} = \sum_{i=1}^{n} \left(y_i - \hat y_i \right)^{2} = \sum_{i=1}^{n} \left(y_i - b_0 - b_1 x_i \right)^{2}$$
+
+To minimize RSS with respect to $b_0$ and $b_1$, 
+
+$$\frac{\partial RSS}{\partial b_0} = -2 \sum_{i=1}^{n} \left(y_i - b_0 - b_1 x_i \right) = 0 $$
+$$\frac{\partial RSS}{\partial b_1} = -2 \sum_{i=1}^{n} x_i \left(y_i - b_0 - b_1 x_i \right) = 0 $$
+
+Rearranging the terms in these last two equations gives 
+
+$$\hat \beta_0 = \bar y - \hat \beta_1 \bar x$$
+$$\hat \beta_1 = \frac{\sum_{i=1}^{n} \left(x_i - \bar x \right) \left(y_i - \bar y \right)}{\sum_{i=1}^{n} \left(x_i - \bar x \right)^{2}}$$ 
+
+Here, since the $\sum_{i=1}^{n}(x_i - \bar x) = 0$, we see that 
+
+$$\sum_{i=1}^{n}(x_i-\bar x)(y_i - \bar y) = \sum_{i=1}^{n}(x_i-\bar x)y_i - \bar y\sum_{i=1}^{n}(x_i-\bar x) \\= \sum_{i=1}^{n}(x_i-\bar x)y_i$$
+Therefore, 
+
+$$\hat \beta_1 = \frac{\sum_{i=1}^{n}(x_i-\bar x)y_i}{\sum_{i=1}^{n}(x_i-\bar x)^2} =  (X^{T}X)^{-1}X^{T}Y $$
+
 Coefficients - Beta Hat
 --------------
 
-Beta Hat = inverse(t(X) * X) * t(X) * y
+$\hat \beta$ is defined as.. 
+
+$$\hat \beta = (X^{T}X)^{-1}X^{T}Y$$ 
+
+
 
 ```r
 #Matrix of predictors
@@ -220,21 +136,27 @@ beta
 ```
 
 ```
-##                   [,1]
-## (Intercept) -6.3348714
-## drat         3.4648543
-## qsec         0.3675611
-## gear         3.6402645
-## carb        -2.1404624
+##                     [,1]
+## (Intercept) 16.533569595
+## disp         0.008720176
+## hp          -0.020598081
+## drat         2.015774558
+## wt          -4.385463888
+## qsec         0.640149901
 ```
 
 ```r
-coef(lm1)
+coef(lm1) %>% t %>% t
 ```
 
 ```
-## (Intercept)        drat        qsec        gear        carb 
-##  -6.3348714   3.4648543   0.3675611   3.6402645  -2.1404624
+##                     [,1]
+## (Intercept) 16.533569595
+## disp         0.008720176
+## hp          -0.020598081
+## drat         2.015774558
+## wt          -4.385463888
+## qsec         0.640149901
 ```
 
 ```r
@@ -243,281 +165,87 @@ X %*% beta #This is fitted values
 ```
 
 ```
-##                         [,1]
-## Mazda RX4           19.22732
-## Mazda RX4 Wag       19.43316
-## Datsun 710          26.26573
-## Hornet 4 Drive      20.26260
-## Hornet Sportabout   17.47518
-## Valiant             19.44054
-## Duster 360          12.96842
-## Merc 240D           24.08180
-## Merc 230            25.94464
-## Merc 280            19.97293
-## Merc 280C           20.19347
-## Merc 450SE          15.19720
-## Merc 450SL          15.27071
-## Merc 450SLC         15.41774
-## Cadillac Fleetwood  12.78484
-## Lincoln Continental 12.96857
-## Chrysler Imperial   13.61847
-## Fiat 128            27.37874
-## Honda Civic         27.83423
-## Toyota Corolla      28.02188
-## Toyota Corona       22.62032
-## Dodge Challenger    16.06875
-## AMC Javelin         17.57810
-## Camaro Z28          14.61210
-## Pontiac Firebird    17.24367
-## Fiat X1-9           27.16923
-## Porsche 914-2       29.07310
-## Lotus Europa        26.85981
-## Ford Pantera L      23.25592
-## Ferrari Dino        17.26365
-## Maserati Bora       12.37473
-## Volvo 142E          25.02245
+##                          [,1]
+## Mazda RX4           22.571482
+## Mazda RX4 Wag       21.811672
+## Datsun 710          25.059373
+## Hornet 4 Drive      21.071419
+## Hornet Sportabout   18.227214
+## Valiant             19.666474
+## Duster 360          15.580808
+## Merc 240D           22.787315
+## Merc 230            24.551610
+## Merc 280            19.992091
+## Merc 280C           20.376181
+## Merc 450SE          14.709138
+## Merc 450SL          16.328225
+## Merc 450SLC         16.365012
+## Cadillac Fleetwood  10.819315
+## Lincoln Continental  9.784302
+## Chrysler Imperial    9.854947
+## Fiat 128            26.900432
+## Honda Civic         30.833407
+## Toyota Corolla      29.012924
+## Toyota Corona       25.040446
+## Dodge Challenger    17.142907
+## AMC Javelin         18.455006
+## Camaro Z28          15.082469
+## Pontiac Firebird    16.678009
+## Fiat X1-9           27.700311
+## Porsche 914-2       25.943673
+## Lotus Europa        26.818072
+## Ford Pantera L      18.043280
+## Ferrari Dino        19.265023
+## Maserati Bora       13.083910
+## Volvo 142E          23.343552
 ```
 
 ```r
-predict(lm1)
+as.matrix(predict(lm1))
 ```
 
 ```
-##           Mazda RX4       Mazda RX4 Wag          Datsun 710 
-##            19.22732            19.43316            26.26573 
-##      Hornet 4 Drive   Hornet Sportabout             Valiant 
-##            20.26260            17.47518            19.44054 
-##          Duster 360           Merc 240D            Merc 230 
-##            12.96842            24.08180            25.94464 
-##            Merc 280           Merc 280C          Merc 450SE 
-##            19.97293            20.19347            15.19720 
-##          Merc 450SL         Merc 450SLC  Cadillac Fleetwood 
-##            15.27071            15.41774            12.78484 
-## Lincoln Continental   Chrysler Imperial            Fiat 128 
-##            12.96857            13.61847            27.37874 
-##         Honda Civic      Toyota Corolla       Toyota Corona 
-##            27.83423            28.02188            22.62032 
-##    Dodge Challenger         AMC Javelin          Camaro Z28 
-##            16.06875            17.57810            14.61210 
-##    Pontiac Firebird           Fiat X1-9       Porsche 914-2 
-##            17.24367            27.16923            29.07310 
-##        Lotus Europa      Ford Pantera L        Ferrari Dino 
-##            26.85981            23.25592            17.26365 
-##       Maserati Bora          Volvo 142E 
-##            12.37473            25.02245
+##                          [,1]
+## Mazda RX4           22.571482
+## Mazda RX4 Wag       21.811672
+## Datsun 710          25.059373
+## Hornet 4 Drive      21.071419
+## Hornet Sportabout   18.227214
+## Valiant             19.666474
+## Duster 360          15.580808
+## Merc 240D           22.787315
+## Merc 230            24.551610
+## Merc 280            19.992091
+## Merc 280C           20.376181
+## Merc 450SE          14.709138
+## Merc 450SL          16.328225
+## Merc 450SLC         16.365012
+## Cadillac Fleetwood  10.819315
+## Lincoln Continental  9.784302
+## Chrysler Imperial    9.854947
+## Fiat 128            26.900432
+## Honda Civic         30.833407
+## Toyota Corolla      29.012924
+## Toyota Corona       25.040446
+## Dodge Challenger    17.142907
+## AMC Javelin         18.455006
+## Camaro Z28          15.082469
+## Pontiac Firebird    16.678009
+## Fiat X1-9           27.700311
+## Porsche 914-2       25.943673
+## Lotus Europa        26.818072
+## Ford Pantera L      18.043280
+## Ferrari Dino        19.265023
+## Maserati Bora       13.083910
+## Volvo 142E          23.343552
 ```
 
-
-Standard Error for coefficients
----------------------
-Beta hat = inverse(t(X) * X) * t(X) * y
-
-Var(Beta hat) = inverse(t(X) * X) * t(X) * sigma^2 * I * X * inverse(t(X) * X)
-              = sigma^2 * inverse(t(X) * X)
-              where sigma^2 = MSE in anova table
-
-
-```r
-#First approach from the results of our model
-vcov(lm1) #variance-covariance matrix
-```
-
-```
-##             (Intercept)       drat        qsec        gear       carb
-## (Intercept)  75.7897831 -2.8484283 -3.12981986 -0.56764089 -2.5986016
-## drat         -2.8484283  2.4171200 -0.07298240 -1.37840859  0.1922245
-## qsec         -3.1298199 -0.0729824  0.16158134  0.05531822  0.1081937
-## gear         -0.5676409 -1.3784086  0.05531822  1.36156866 -0.1717234
-## carb         -2.5986016  0.1922245  0.10819366 -0.17172339  0.2166622
-```
-
-```r
-sqrt(diag(vcov(lm1))) #Std.Error for Beta hat
-```
-
-```
-## (Intercept)        drat        qsec        gear        carb 
-##   8.7057328   1.5547090   0.4019718   1.1668627   0.4654699
-```
-
-```r
-#Second approach
-solve(t(X) %*% X) #inverse of X'X 
-```
-
-```
-##             (Intercept)        drat         qsec         gear        carb
-## (Intercept)  8.45512253 -0.31777120 -0.349163295 -0.063326125 -0.28990048
-## drat        -0.31777120  0.26965437 -0.008141930 -0.153775523  0.02144460
-## qsec        -0.34916329 -0.00814193  0.018026045  0.006171311  0.01207011
-## gear        -0.06332613 -0.15377552  0.006171311  0.151896857 -0.01915749
-## carb        -0.28990048  0.02144460  0.012070106 -0.019157494  0.02417088
-```
-
-```r
-anova(lm1)[[3]][5] #RSS^2 = Mean of Sum of Squared of Residuals
-```
-
-```
-## [1] 8.963771
-```
-
-```r
-solve(t(X) %*% X)*anova(lm1)[[3]][5] #variance-covariance
-```
-
-```
-##             (Intercept)       drat        qsec        gear       carb
-## (Intercept)  75.7897831 -2.8484283 -3.12981986 -0.56764089 -2.5986016
-## drat         -2.8484283  2.4171200 -0.07298240 -1.37840859  0.1922245
-## qsec         -3.1298199 -0.0729824  0.16158134  0.05531822  0.1081937
-## gear         -0.5676409 -1.3784086  0.05531822  1.36156866 -0.1717234
-## carb         -2.5986016  0.1922245  0.10819366 -0.17172339  0.2166622
-```
-
-```r
-inv.XX <- solve(t(X) %*% X) #inverse of X'X
-
-se <- sqrt(diag(inv.XX)*anova(lm1)[[3]][5]) #Std.error for coefficients
-se
-```
-
-```
-## (Intercept)        drat        qsec        gear        carb 
-##   8.7057328   1.5547090   0.4019718   1.1668627   0.4654699
-```
-
-```r
-summary(lm1)[["coefficients"]][,"Std. Error"]
-```
-
-```
-## (Intercept)        drat        qsec        gear        carb 
-##   8.7057328   1.5547090   0.4019718   1.1668627   0.4654699
-```
-
-
-t-value
-----------------
-Test: 
-
-Null H0 : Beta1 = 0 
-against,
-Alt HA : Beta1 != 0
-
-t-statistic = (Beta1 hat - Beta1(=0)) / se(Beta1 hat)
-
-
-
-```r
-#t-value = beta / se
-(beta - 0)/ se
-```
-
-```
-##                   [,1]
-## (Intercept) -0.7276666
-## drat         2.2286192
-## qsec         0.9143953
-## gear         3.1197024
-## carb        -4.5984980
-```
-
-```r
-summary(lm1)[["coefficients"]][,"t value"]
-```
-
-```
-## (Intercept)        drat        qsec        gear        carb 
-##  -0.7276666   2.2286192   0.9143953   3.1197024  -4.5984980
-```
-
-p-value
-----------------
-
-```r
-#P-value from t distribution, degrees of freedom = n-p+1, where p is # of predictors, n = 32, p = 7
-
-tvalue <- summary(lm1)[["coefficients"]][, "t value"]
-
-#p value
-pvalue <- sapply(tvalue, function(x){pt(-abs(x), df=(nrow(mtcars1)-dim(mtcars1)[2]), lower.tail=TRUE)*2})
-pvalue
-```
-
-```
-##  (Intercept)         drat         qsec         gear         carb 
-## 4.730811e-01 3.435896e-02 3.686034e-01 4.275864e-03 8.958921e-05
-```
-
-```r
-summary(lm1)[["coefficients"]][, "Pr(>|t|)"]
-```
-
-```
-##  (Intercept)         drat         qsec         gear         carb 
-## 4.730811e-01 3.435896e-02 3.686034e-01 4.275864e-03 8.958921e-05
-```
-
-confidence interval for coefficients
-----------------
-
-Confidence Interval for Coefficients.. 
-
-Beta hat +/- se(Beta hat) * t(alpha/2, n-p-1)
-
-where t(alpha/2, n-p-1) is the 100(1-alpha/2)th quantile of the t-distribution with n-(p+1) degrees of freedom. 
-
-
-```r
-#confidence interval for each coef
-confint(lm1)
-```
-
-```
-##                   2.5 %    97.5 %
-## (Intercept) -24.1975596 11.527817
-## drat          0.2748549  6.654854
-## qsec         -0.4572169  1.192339
-## gear          1.2460599  6.034469
-## carb         -3.0955277 -1.185397
-```
-
-```r
-#confidence interval
-beta.conf <- data.frame("2.5%" = beta - se*(-qt(0.025,nrow(mtcars1)-dim(mtcars1)[2])),
-               "97.5%" = beta + se*(-qt(0.025,nrow(mtcars1)-dim(mtcars1)[2])))
-colnames(beta.conf) <- c("lower 2.5%", "upper 97.5%")
-beta.conf
-```
-
-```
-##              lower 2.5% upper 97.5%
-## (Intercept) -24.1975596   11.527817
-## drat          0.2748549    6.654854
-## qsec         -0.4572169    1.192339
-## gear          1.2460599    6.034469
-## carb         -3.0955277   -1.185397
-```
-
-```r
-confint(lm1)
-```
-
-```
-##                   2.5 %    97.5 %
-## (Intercept) -24.1975596 11.527817
-## drat          0.2748549  6.654854
-## qsec         -0.4572169  1.192339
-## gear          1.2460599  6.034469
-## carb         -3.0955277 -1.185397
-```
 
 Residual Standard Error
 -------------
 
-error = y-yhat
-Residual Sum of Squared = sqrt(sum((y-yhat)^2)/(n-(p+1)))
+$$\hat e_i = y_i - \hat y_i $$
+$$RSS = \sum_{i=1}^{n}(y_i - \hat y_i)^2 $$
 
 ```r
 #first appraoch from predicted values
@@ -526,102 +254,506 @@ p <- length(lm1$coefficients)-1 # number of predictors except for intercept
 n <- length(lm1$residuals) # number of obs or resid
 
 beta.pred <- X %*% beta 
-predict(lm1)
+beta.pred
+```
+
+```
+##                          [,1]
+## Mazda RX4           22.571482
+## Mazda RX4 Wag       21.811672
+## Datsun 710          25.059373
+## Hornet 4 Drive      21.071419
+## Hornet Sportabout   18.227214
+## Valiant             19.666474
+## Duster 360          15.580808
+## Merc 240D           22.787315
+## Merc 230            24.551610
+## Merc 280            19.992091
+## Merc 280C           20.376181
+## Merc 450SE          14.709138
+## Merc 450SL          16.328225
+## Merc 450SLC         16.365012
+## Cadillac Fleetwood  10.819315
+## Lincoln Continental  9.784302
+## Chrysler Imperial    9.854947
+## Fiat 128            26.900432
+## Honda Civic         30.833407
+## Toyota Corolla      29.012924
+## Toyota Corona       25.040446
+## Dodge Challenger    17.142907
+## AMC Javelin         18.455006
+## Camaro Z28          15.082469
+## Pontiac Firebird    16.678009
+## Fiat X1-9           27.700311
+## Porsche 914-2       25.943673
+## Lotus Europa        26.818072
+## Ford Pantera L      18.043280
+## Ferrari Dino        19.265023
+## Maserati Bora       13.083910
+## Volvo 142E          23.343552
+```
+
+```r
+as.matrix(predict(lm1))
+```
+
+```
+##                          [,1]
+## Mazda RX4           22.571482
+## Mazda RX4 Wag       21.811672
+## Datsun 710          25.059373
+## Hornet 4 Drive      21.071419
+## Hornet Sportabout   18.227214
+## Valiant             19.666474
+## Duster 360          15.580808
+## Merc 240D           22.787315
+## Merc 230            24.551610
+## Merc 280            19.992091
+## Merc 280C           20.376181
+## Merc 450SE          14.709138
+## Merc 450SL          16.328225
+## Merc 450SLC         16.365012
+## Cadillac Fleetwood  10.819315
+## Lincoln Continental  9.784302
+## Chrysler Imperial    9.854947
+## Fiat 128            26.900432
+## Honda Civic         30.833407
+## Toyota Corolla      29.012924
+## Toyota Corona       25.040446
+## Dodge Challenger    17.142907
+## AMC Javelin         18.455006
+## Camaro Z28          15.082469
+## Pontiac Firebird    16.678009
+## Fiat X1-9           27.700311
+## Porsche 914-2       25.943673
+## Lotus Europa        26.818072
+## Ford Pantera L      18.043280
+## Ferrari Dino        19.265023
+## Maserati Bora       13.083910
+## Volvo 142E          23.343552
+```
+
+```r
+mtcars1$mpg - predict(lm1)
 ```
 
 ```
 ##           Mazda RX4       Mazda RX4 Wag          Datsun 710 
-##            19.22732            19.43316            26.26573 
+##         -1.57148162         -0.81167228         -2.25937258 
 ##      Hornet 4 Drive   Hornet Sportabout             Valiant 
-##            20.26260            17.47518            19.44054 
+##          0.32858059          0.47278581         -1.56647443 
 ##          Duster 360           Merc 240D            Merc 230 
-##            12.96842            24.08180            25.94464 
+##         -1.28080782          1.61268526         -1.75161045 
 ##            Merc 280           Merc 280C          Merc 450SE 
-##            19.97293            20.19347            15.19720 
+##         -0.79209083         -2.57618077          1.69086228 
 ##          Merc 450SL         Merc 450SLC  Cadillac Fleetwood 
-##            15.27071            15.41774            12.78484 
+##          0.97177457         -1.16501219         -0.41931533 
 ## Lincoln Continental   Chrysler Imperial            Fiat 128 
-##            12.96857            13.61847            27.37874 
+##          0.61569807          4.84505296          5.49956767 
 ##         Honda Civic      Toyota Corolla       Toyota Corona 
-##            27.83423            28.02188            22.62032 
+##         -0.43340728          4.88707571         -3.54044580 
 ##    Dodge Challenger         AMC Javelin          Camaro Z28 
-##            16.06875            17.57810            14.61210 
+##         -1.64290715         -3.25500565         -1.78246913 
 ##    Pontiac Firebird           Fiat X1-9       Porsche 914-2 
-##            17.24367            27.16923            29.07310 
+##          2.52199137         -0.40031087          0.05632667 
 ##        Lotus Europa      Ford Pantera L        Ferrari Dino 
-##            26.85981            23.25592            17.26365 
+##          3.58192825         -2.24327970          0.43497663 
 ##       Maserati Bora          Volvo 142E 
-##            12.37473            25.02245
+##          1.91609010         -1.94355207
 ```
 
 ```r
 error <- with(mtcars1, mpg-predict(lm1)) #y - yhat
-RSS2 <- with(mtcars1, error^2) #squared (y - yhat)
+RSS2.hands <- error^2 #squared (y - yhat)
 
-sum(RSS2) #sum of squared (y - yhat)
+error
 ```
 
 ```
-## [1] 242.0218
+##           Mazda RX4       Mazda RX4 Wag          Datsun 710 
+##         -1.57148162         -0.81167228         -2.25937258 
+##      Hornet 4 Drive   Hornet Sportabout             Valiant 
+##          0.32858059          0.47278581         -1.56647443 
+##          Duster 360           Merc 240D            Merc 230 
+##         -1.28080782          1.61268526         -1.75161045 
+##            Merc 280           Merc 280C          Merc 450SE 
+##         -0.79209083         -2.57618077          1.69086228 
+##          Merc 450SL         Merc 450SLC  Cadillac Fleetwood 
+##          0.97177457         -1.16501219         -0.41931533 
+## Lincoln Continental   Chrysler Imperial            Fiat 128 
+##          0.61569807          4.84505296          5.49956767 
+##         Honda Civic      Toyota Corolla       Toyota Corona 
+##         -0.43340728          4.88707571         -3.54044580 
+##    Dodge Challenger         AMC Javelin          Camaro Z28 
+##         -1.64290715         -3.25500565         -1.78246913 
+##    Pontiac Firebird           Fiat X1-9       Porsche 914-2 
+##          2.52199137         -0.40031087          0.05632667 
+##        Lotus Europa      Ford Pantera L        Ferrari Dino 
+##          3.58192825         -2.24327970          0.43497663 
+##       Maserati Bora          Volvo 142E 
+##          1.91609010         -1.94355207
 ```
 
 ```r
-RSS <- sqrt(sum(RSS2)/(n-(p+1)))  #sqrt of sum of squared (y - yhat) = RSS
-RSS
+RSS2.hands
 ```
 
 ```
-## [1] 2.993956
+##           Mazda RX4       Mazda RX4 Wag          Datsun 710 
+##         2.469554490         0.658811884         5.104764436 
+##      Hornet 4 Drive   Hornet Sportabout             Valiant 
+##         0.107965201         0.223526423         2.453842125 
+##          Duster 360           Merc 240D            Merc 230 
+##         1.640468675         2.600753759         3.068139176 
+##            Merc 280           Merc 280C          Merc 450SE 
+##         0.627407885         6.636707370         2.859015236 
+##          Merc 450SL         Merc 450SLC  Cadillac Fleetwood 
+##         0.944345822         1.357253409         0.175825347 
+## Lincoln Continental   Chrysler Imperial            Fiat 128 
+##         0.379084112        23.474538211        30.245244529 
+##         Honda Civic      Toyota Corolla       Toyota Corona 
+##         0.187841869        23.883508982        12.534756429 
+##    Dodge Challenger         AMC Javelin          Camaro Z28 
+##         2.699143891        10.595061780         3.177196183 
+##    Pontiac Firebird           Fiat X1-9       Porsche 914-2 
+##         6.360440483         0.160248794         0.003172693 
+##        Lotus Europa      Ford Pantera L        Ferrari Dino 
+##        12.830209964         5.032303792         0.189204668 
+##       Maserati Bora          Volvo 142E 
+##         3.671401257         3.777394641
 ```
 
 ```r
+sum(RSS2.hands) #sum of squared (y - yhat)
+```
+
+```
+## [1] 170.1291
+```
+
+```r
+RSS.hands <- sum(RSS2.hands)
+
 #second approach from results of our model
-RSS2 <- sum(lm1$residuals**2) #sum of square residuals
-df <- n-(p+1) #degrees of freedom adding 1
+RSS.def <- sum(lm1$residuals**2) #sum of square residuals
 
-RSS <- sqrt(RSS2 / df)
-RSS
+RSS.def
 ```
 
 ```
-## [1] 2.993956
+## [1] 170.1291
+```
+
+Standard Error for coefficients
+---------------------
+$$\hat \beta = (X^{T}X)^{-1}X^{T}Y$$
+
+$$Var \left(\hat \beta \right) = (X^{T}X)^{-1}X^{T}\sigma^2IX(X^{T}X)^{-1} = \sigma^2(X^{T}X)^{-1}X^{T}X(X^{T}X)^{-1} \\= \sigma^2(X^{T}X)^{-1} $$
+
+where $\sigma^2 = MSE = \frac{RSS}{n-p-1}$ in anova table, where MSE is Mean of Sum of Squared of Residuals
+
+
+```r
+#First approach from the results of our model
+vcov(lm1) #variance-covariance matrix
+```
+
+```
+##              (Intercept)          disp            hp         drat
+## (Intercept) 120.21434693 -3.913906e-02 -8.506173e-02 -9.183490623
+## disp         -0.03913906  1.251958e-04 -3.966522e-05  0.005149514
+## hp           -0.08506173 -3.966522e-05  2.335727e-04 -0.001643319
+## drat         -9.18349062  5.149514e-03 -1.643319e-03  1.714684098
+## wt            2.71740943 -9.730204e-03 -5.468125e-03  0.190251467
+## qsec         -4.15803471  1.616696e-03  4.675610e-03  0.081651900
+##                       wt         qsec
+## (Intercept)  2.717409426 -4.158034714
+## disp        -0.009730204  0.001616696
+## hp          -0.005468125  0.004675610
+## drat         0.190251467  0.081651900
+## wt           1.546123355 -0.298555891
+## qsec        -0.298555891  0.210997231
+```
+
+```r
+sqrt(diag(vcov(lm1))) #Std.Error for Beta hat
+```
+
+```
+## (Intercept)        disp          hp        drat          wt        qsec 
+## 10.96423034  0.01118909  0.01528309  1.30945947  1.24343209  0.45934435
+```
+
+```r
+#Second approach
+solve(t(X) %*% X) #inverse of X'X 
+```
+
+```
+##             (Intercept)          disp            hp          drat
+## (Intercept) 18.37176829 -5.981430e-03 -1.299957e-02 -1.4034677733
+## disp        -0.00598143  1.913305e-05 -6.061841e-06  0.0007869750
+## hp          -0.01299957 -6.061841e-06  3.569577e-05 -0.0002511404
+## drat        -1.40346777  7.869750e-04 -2.511404e-04  0.2620467501
+## wt           0.41528834 -1.487019e-03 -8.356667e-04  0.0290751974
+## qsec        -0.63545203  2.470717e-04  7.145505e-04  0.0124784589
+##                        wt          qsec
+## (Intercept)  0.4152883379 -0.6354520259
+## disp        -0.0014870194  0.0002470717
+## hp          -0.0008356667  0.0007145505
+## drat         0.0290751974  0.0124784589
+## wt           0.2362864396 -0.0456268306
+## qsec        -0.0456268306  0.0322456707
+```
+
+```r
+anova(lm1)
+```
+
+```
+## Analysis of Variance Table
+## 
+## Response: mpg
+##           Df Sum Sq Mean Sq  F value   Pr(>F)    
+## disp       1 808.89  808.89 123.6185 2.23e-11 ***
+## hp         1  33.67   33.67   5.1449 0.031854 *  
+## drat       1  30.15   30.15   4.6073 0.041340 *  
+## wt         1  70.51   70.51  10.7754 0.002933 ** 
+## qsec       1  12.71   12.71   1.9422 0.175233    
+## Residuals 26 170.13    6.54                      
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+```r
+anova(lm1)[['Mean Sq']][length(anova(lm1)[['Mean Sq']])]#Mean of Sum of Squared of Residuals
+```
+
+```
+## [1] 6.543428
+```
+
+```r
+MSE <- RSS.hands/(n-p-1)
+MSE
+```
+
+```
+## [1] 6.543428
+```
+
+```r
+#This is vcov(lm1)
+solve(t(X) %*% X)*MSE #variance-covariance
+```
+
+```
+##              (Intercept)          disp            hp         drat
+## (Intercept) 120.21434693 -3.913906e-02 -8.506173e-02 -9.183490623
+## disp         -0.03913906  1.251958e-04 -3.966522e-05  0.005149514
+## hp           -0.08506173 -3.966522e-05  2.335727e-04 -0.001643319
+## drat         -9.18349062  5.149514e-03 -1.643319e-03  1.714684098
+## wt            2.71740943 -9.730204e-03 -5.468125e-03  0.190251467
+## qsec         -4.15803471  1.616696e-03  4.675610e-03  0.081651900
+##                       wt         qsec
+## (Intercept)  2.717409426 -4.158034714
+## disp        -0.009730204  0.001616696
+## hp          -0.005468125  0.004675610
+## drat         0.190251467  0.081651900
+## wt           1.546123355 -0.298555891
+## qsec        -0.298555891  0.210997231
+```
+
+```r
+inv.XX <- solve(t(X) %*% X) #inverse of X'X
+
+se <- sqrt(diag(inv.XX)*MSE) #Std.error for coefficients
+se
+```
+
+```
+## (Intercept)        disp          hp        drat          wt        qsec 
+## 10.96423034  0.01118909  0.01528309  1.30945947  1.24343209  0.45934435
+```
+
+```r
+summary(lm1)[["coefficients"]][,"Std. Error"]
+```
+
+```
+## (Intercept)        disp          hp        drat          wt        qsec 
+## 10.96423034  0.01118909  0.01528309  1.30945947  1.24343209  0.45934435
+```
+
+
+T-value
+----------------
+Test: 
+
+Null $H_0$ : $\beta_1 = 0$
+against,
+Alternative $H_A$: $\beta _1\neq 0$
+
+T statistic = $\frac{\hat \beta_1 - \beta_1}{se(\hat \beta_1)}$
+
+We set the $\beta_1 = 0$ in the formula to test the hypothesis $H_0$ : $\beta_1 = 0$. 
+
+```r
+#t-value = beta / se
+(beta - 0)/ se
+```
+
+```
+##                   [,1]
+## (Intercept)  1.5079553
+## disp         0.7793462
+## hp          -1.3477698
+## drat         1.5393944
+## wt          -3.5269026
+## qsec         1.3936166
+```
+
+```r
+as.matrix(summary(lm1)[["coefficients"]][,"t value"])
+```
+
+```
+##                   [,1]
+## (Intercept)  1.5079553
+## disp         0.7793462
+## hp          -1.3477698
+## drat         1.5393944
+## wt          -3.5269026
+## qsec         1.3936166
+```
+
+p-value
+----------------
+
+```r
+#P-value from t distribution, degrees of freedom = n-p-1, where p is # of predictors, n = 32, p = 6
+tvalue <- summary(lm1)[["coefficients"]][,"t value"]
+
+#p value by t student distribution
+pvalue <- 
+  sapply(tvalue, function(x){pt(-abs(x), df=(nrow(mtcars1)-dim(mtcars1)[2]), lower.tail=TRUE)*2})
+pvalue
+```
+
+```
+## (Intercept)        disp          hp        drat          wt        qsec 
+## 0.143622106 0.442812305 0.189359670 0.135791211 0.001584059 0.175232676
+```
+
+```r
+summary(lm1)[["coefficients"]][, "Pr(>|t|)"]
+```
+
+```
+## (Intercept)        disp          hp        drat          wt        qsec 
+## 0.143622106 0.442812305 0.189359670 0.135791211 0.001584059 0.175232676
+```
+
+Confidence Interval for Coefficients
+----------------
+
+Confidence Interval for Coefficients.. 
+
+$$CI = \hat \beta_1 \pm se(\hat \beta_1)*t(\frac{\alpha}{2}, n-p-1)$$
+
+where $t(\frac{\alpha}{2}, n-p-1)$ is the $100(1-\frac{\alpha}{2})$th quantile of the t-distribution with $n-p-1$ degrees of freedom. 
+
+For 95% confidence interval,  
+
+```r
+#confidence interval for each coef
+confint(lm1)
+```
+
+```
+##                   2.5 %      97.5 %
+## (Intercept) -6.00372864 39.07086783
+## disp        -0.01427933  0.03171968
+## hp          -0.05201291  0.01081675
+## drat        -0.67585793  4.70740704
+## wt          -6.94137515 -1.82955263
+## qsec        -0.30404593  1.58434573
+```
+
+```r
+#confidence interval
+beta.conf <- data.frame("2.5%" = beta - se*(-qt(0.025,nrow(mtcars1)-dim(mtcars1)[2])),
+               "97.5%" = beta + se*(-qt(0.025,nrow(mtcars1)-dim(mtcars1)[2])))
+colnames(beta.conf) <- c("2.5%", "97.5%")
+beta.conf
+```
+
+```
+##                    2.5%       97.5%
+## (Intercept) -6.00372864 39.07086783
+## disp        -0.01427933  0.03171968
+## hp          -0.05201291  0.01081675
+## drat        -0.67585793  4.70740704
+## wt          -6.94137515 -1.82955263
+## qsec        -0.30404593  1.58434573
+```
+
+```r
+confint(lm1)
+```
+
+```
+##                   2.5 %      97.5 %
+## (Intercept) -6.00372864 39.07086783
+## disp        -0.01427933  0.03171968
+## hp          -0.05201291  0.01081675
+## drat        -0.67585793  4.70740704
+## wt          -6.94137515 -1.82955263
+## qsec        -0.30404593  1.58434573
 ```
 
 
 
 R squared - Explained variability of response variable
 --------------
-From,
+From the below, 
 
-SST = SSR + RSS, 
-where SST = sum of squared of Y
-      SSR = sum of squared of regressor
-      RSS = residual of sum of squared
-      
-1 = SSR/SST + RSS/SST
-R Squared = SSR/SST = 1-RSS/SST
+$$SST = SSR + RSS$$
+where $SST = SYY = \sum_{i=1}^{n}(y_i - \hat y_i)$ is sum of sqaured of $Y$, 
+      $SSR = \sum_{i=1}^{n}(\hat y_i - \bar y)^2$ is regression sum of squares (sum of squares explained by the regression model)
 
-If we have one predictor, then R Squared = (correlation y and x)^2
+$$1 = \frac{SSR}{SST} + \frac{RSS}{SST} $$
+$$R^2 = \frac{SSR}{SST} = 1-\frac{RSS}{SST}$$
+where $R^2$ is the coefficient of determination of the regression line, which is the proportion of the total sample variability in the Y's explained by the regressionl model. 
 
+If we have one predictor, then $R^2 = corr(y_i,x_i)^2$ 
 
 ```r
 #R^2 = 1 - RSS/SST, here SST = SYY
-SYY <- sum((mtcars$mpg - mean(mtcars$mpg))^2)
-RSS2
+SYY <- sum((mtcars1$mpg - mean(mtcars1$mpg))^2)
+SYY
 ```
 
 ```
-## [1] 242.0218
+## [1] 1126.047
 ```
 
 ```r
-#R^2
-R2<-1-(RSS2/SYY)
+RSS.hands #sum of squared of residuals
+```
+
+```
+## [1] 170.1291
+```
+
+```r
+#R^2 = 1 - RSS/SST = 1 - RSS/SYY
+R2<-1-(RSS.hands/SYY)
 R2
 ```
 
 ```
-## [1] 0.7850696
+## [1] 0.8489147
 ```
 
 ```r
@@ -629,20 +761,25 @@ summary(lm1)$r.squared
 ```
 
 ```
-## [1] 0.7850696
+## [1] 0.8489147
 ```
 
 Adjusted R squared - for multiple variables
 -----------------
 
+For the model adding more predictors, we often use the $R_{adj}^2$ defined by,
+
+$$R_{adj}^2 = \frac{1 - \frac{RSS}{n-p-1}}{\frac{SST}{n-1}}$$
+
+
 ```r
 #Adjusted R Squared are normalized R Squared by taking into account how many samples and how many variables are used. 
-adj.R2 <- 1-(RSS2/SYY)*(n-1)/(n-(p+1))
+adj.R2 <- 1-(RSS.hands/SYY)*(n-1)/(n-(p+1))
 adj.R2
 ```
 
 ```
-## [1] 0.753228
+## [1] 0.8198599
 ```
 
 ```r
@@ -650,20 +787,23 @@ summary(lm1)$adj.r.squared
 ```
 
 ```
-## [1] 0.753228
+## [1] 0.8198599
 ```
 
 
 F Statistics
 ---------------
 
+F test statistic is defined as $\frac{explained \, variance}{unexplained \, variance}$, 
+which here is $\frac{SSR/p}{RSS/(n-p-1)} = \frac{(SST-RSS)/p}{RSS/(n-p-1)}$
+
 ```r
 #It's investigating the hypothesis; at least one of coefficients is not zero
-((SYY - RSS2)/p) / (RSS2/(n-(p+1)))
+((SYY - RSS.hands)/p) / (RSS.hands/(n-(p+1)))
 ```
 
 ```
-## [1] 24.65551
+## [1] 29.21765
 ```
 
 ```r
@@ -672,19 +812,19 @@ summary(lm1)$fstatistic[1]
 
 ```
 ##    value 
-## 24.65551
+## 29.21765
 ```
 
-p value - F Statistics
+p value for F Statistics
 ---------------
 
 ```r
-fvalue <- ((SYY - RSS2)/p) / (RSS2/(n-(p+1)))
+fvalue <- ((SYY - RSS.hands)/p) / (RSS.hands/(n-(p+1)))
 fvalue
 ```
 
 ```
-## [1] 24.65551
+## [1] 29.21765
 ```
 
 ```r
@@ -693,35 +833,18 @@ pf(fvalue, p, n-(p+1), lower.tail=FALSE)
 ```
 
 ```
-## [1] 1.123108e-08
+## [1] 6.892136e-10
 ```
 
 ```r
-summary(lm1)
+sum.lm1 <- summary(lm1)
+
+pf(sum.lm1$fstatistic[1],sum.lm1$fstatistic[2],sum.lm1$fstatistic[3],lower.tail=FALSE)
 ```
 
 ```
-## 
-## Call:
-## lm(formula = mpg ~ ., data = mtcars1)
-## 
-## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -7.4559 -2.3798  0.2245  1.8186  5.8781 
-## 
-## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)  -6.3349     8.7057  -0.728  0.47308    
-## drat          3.4649     1.5547   2.229  0.03436 *  
-## qsec          0.3676     0.4020   0.914  0.36860    
-## gear          3.6403     1.1669   3.120  0.00428 ** 
-## carb         -2.1405     0.4655  -4.598 8.96e-05 ***
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-## 
-## Residual standard error: 2.994 on 27 degrees of freedom
-## Multiple R-squared:  0.7851,	Adjusted R-squared:  0.7532 
-## F-statistic: 24.66 on 4 and 27 DF,  p-value: 1.123e-08
+##        value 
+## 6.892136e-10
 ```
 
 
@@ -738,21 +861,58 @@ Assumptions of Linear Regression
 -----------------
 
 ```r
+cooks <- cooks.distance(lm1)
+hat <- lm.influence(lm1)$hat
+
+
+infl <- rstandard(lm1, infl = lm.influence(lm1, do.coef = FALSE),
+          sd = sqrt(deviance(lm1)/df.residual(lm1)),
+          type=c("sd.1", "predictive"))
+
+mtcars1$cooks <- cooks
+mtcars1$hat <- hat
+mtcars1$inf <- infl
+
+mtcars1 %>% gather(-mpg,-cooks, -hat, -inf, key = "var", value = "value") %>%
+  ggplot(aes(x=value, y=mpg, color = cooks > qf(.1, p, n-p))) +
+  geom_jitter()+
+  facet_wrap(~var, scales="free") +
+  scale_color_manual(name = "big cooks", values = setNames(c('red', 'black'), c(T,F)))
+```
+
+![](LinearRegression_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+
+```r
+mtcars1 %>% gather(-mpg,-cooks, -hat, -inf, key = "var", value = "value") %>%
+  ggplot(aes(x=value, y=mpg, color = hat > 2*(p/n))) +
+  geom_jitter()+
+  facet_wrap(~var, scales="free") +
+  scale_color_manual(name = "big hat values", values = setNames(c('blue', 'black'), c(T,F)))
+```
+
+![](LinearRegression_files/figure-html/unnamed-chunk-13-2.png)<!-- -->
+
+```r
+mtcars1 %>% gather(-mpg,-cooks, -hat,-inf, key = "var", value = "value") %>%
+  ggplot(aes(x=value, y=mpg, color = abs(inf) > 2)) +
+  geom_jitter()+
+  facet_wrap(~var, scales="free") +
+  scale_color_manual(name = "big std error", values = setNames(c('green', 'black'), c(T,F)))
+```
+
+![](LinearRegression_files/figure-html/unnamed-chunk-13-3.png)<!-- -->
+
+```r
+mtcars1 <- mtcars1 %>% subset(select = -c(cooks, hat, inf))
+
 #Sqrt(standardized residuals) > 2 or < -2 by influence
-o1<-which(rstandard(lm1, infl = lm.influence(lm1, do.coef = FALSE),
-          sd = sqrt(deviance(lm1)/df.residual(lm1)),
-          type=c("sd.1", "predictive"))>2)
+outliers <- which(abs(infl) > 2)
 
-o2<-which(rstandard(lm1, infl = lm.influence(lm1, do.coef = FALSE),
-          sd = sqrt(deviance(lm1)/df.residual(lm1)),
-          type=c("sd.1", "predictive"))<(-2))
-
-outliers <- c(o1, o2)
 length(outliers)
 ```
 
 ```
-## [1] 2
+## [1] 3
 ```
 
 ```r
@@ -769,31 +929,34 @@ summary(lm2)
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -4.4346 -1.6936  0.4705  1.1748  5.3767 
+## -3.1076 -1.3244  0.2009  1.0608  3.5902 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)   1.6578     6.9091   0.240   0.8123    
-## drat          3.2305     1.2048   2.681   0.0128 *  
-## qsec         -0.1248     0.3297  -0.378   0.7083    
-## gear          4.2265     0.9094   4.647 9.29e-05 ***
-## carb         -2.2915     0.3638  -6.299 1.36e-06 ***
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 25.328066   8.076535   3.136  0.00463 ** 
+## disp         0.006860   0.008074   0.850  0.40430    
+## hp          -0.021661   0.011011  -1.967  0.06134 .  
+## drat         1.044083   0.965908   1.081  0.29093    
+## wt          -4.491025   0.956688  -4.694 9.97e-05 ***
+## qsec         0.363061   0.339420   1.070  0.29587    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 2.298 on 25 degrees of freedom
-## Multiple R-squared:  0.8556,	Adjusted R-squared:  0.8324 
-## F-statistic: 37.02 on 4 and 25 DF,  p-value: 3.666e-10
+## Residual standard error: 1.831 on 23 degrees of freedom
+## Multiple R-squared:  0.8957,	Adjusted R-squared:  0.8731 
+## F-statistic: 39.52 on 5 and 23 DF,  p-value: 1.503e-10
 ```
 
 ```r
-#much improved by removing only 2 outliers
+#much improved by removing only 3 outliers
+#R.squared: 0.8489 -> 0.8957
+#adj R.squared: 0.8199 -> 0.8731
 
 par(mfrow=c(2,2))
 plot(lm2)
 ```
 
-![](LinearRegression_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+![](LinearRegression_files/figure-html/unnamed-chunk-13-4.png)<!-- -->
 
 ```r
 par(mfrow=c(1,1))
@@ -805,17 +968,59 @@ par(mfrow=c(1,1))
 
 ```r
 library(e1071) #skewness / kurtosis
-densityPlot(lm2$residuals)
+
+resid <- data.frame(residuals = lm2$residuals)
+resid
 ```
 
-![](LinearRegression_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+```
+##                       residuals
+## Mazda RX4           -1.32443898
+## Mazda RX4 Wag       -0.38254161
+## Datsun 710          -1.61162857
+## Hornet 4 Drive       0.84966291
+## Hornet Sportabout    0.67387188
+## Valiant             -1.18103731
+## Duster 360          -1.26029275
+## Merc 240D            2.62100226
+## Merc 230             0.30361701
+## Merc 280             0.09873828
+## Merc 280C           -1.51909815
+## Merc 450SE           1.83470047
+## Merc 450SL           1.13513983
+## Merc 450SLC         -0.88553321
+## Cadillac Fleetwood   0.26527615
+## Lincoln Continental  1.33064411
+## Honda Civic          1.06076315
+## Toyota Corona       -2.60846709
+## Dodge Challenger    -1.95858478
+## AMC Javelin         -3.10758978
+## Camaro Z28          -1.36592273
+## Pontiac Firebird     2.78052880
+## Fiat X1-9            0.42800793
+## Porsche 914-2        0.74016480
+## Lotus Europa         3.59017962
+## Ford Pantera L      -1.65143555
+## Ferrari Dino         0.20093021
+## Maserati Bora        1.89954390
+## Volvo 142E          -0.95620079
+```
+
+```r
+resid %>%
+  ggplot(aes(x=residuals)) +
+  geom_density() +
+  xlim(c(-6,6))
+```
+
+![](LinearRegression_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 ```r
 skewness(lm2$residuals) #we would say this is not normal
 ```
 
 ```
-## [1] -0.04867746
+## [1] 0.2086016
 ```
 
 ```r
@@ -823,7 +1028,7 @@ kurtosis(lm2$residuals) #well?
 ```
 
 ```
-## [1] -0.1176351
+## [1] -0.7702626
 ```
 
 ```r
@@ -835,7 +1040,7 @@ shapiro.test(lm2$residuals) #P-value > 0.05, then it's normal distribution
 ## 	Shapiro-Wilk normality test
 ## 
 ## data:  lm2$residuals
-## W = 0.9661, p-value = 0.4387
+## W = 0.97855, p-value = 0.8003
 ```
 
 
@@ -843,46 +1048,111 @@ shapiro.test(lm2$residuals) #P-value > 0.05, then it's normal distribution
 -------------------
 
 ```r
-#I actually remove those predictors that have correlation each other predictors,
-#which have collinearity. 
-
 library(Matrix)
+```
+
+```
+## 
+## Attaching package: 'Matrix'
+```
+
+```
+## The following object is masked from 'package:tidyr':
+## 
+##     expand
+```
+
+```r
 out.mtcars1 %>% dim
 ```
 
 ```
-## [1] 30  5
+## [1] 29  6
 ```
 
 ```r
 mat <- model.matrix(mpg~., out.mtcars1)
-rankMatrix(mat)[1] #full rank of our predictors matrix
+rankMatrix(mat)[1] 
 ```
 
 ```
-## [1] 5
+## [1] 6
 ```
 
 ```r
+#full rank of our predictors matrix
+identical(dim(out.mtcars1)[2], rankMatrix(mat)[1])
+```
+
+```
+## [1] TRUE
+```
+
+```r
+summary(lm2)
+```
+
+```
+## 
+## Call:
+## lm(formula = mpg ~ ., data = out.mtcars1)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -3.1076 -1.3244  0.2009  1.0608  3.5902 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 25.328066   8.076535   3.136  0.00463 ** 
+## disp         0.006860   0.008074   0.850  0.40430    
+## hp          -0.021661   0.011011  -1.967  0.06134 .  
+## drat         1.044083   0.965908   1.081  0.29093    
+## wt          -4.491025   0.956688  -4.694 9.97e-05 ***
+## qsec         0.363061   0.339420   1.070  0.29587    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 1.831 on 23 degrees of freedom
+## Multiple R-squared:  0.8957,	Adjusted R-squared:  0.8731 
+## F-statistic: 39.52 on 5 and 23 DF,  p-value: 1.503e-10
+```
+
+```r
+#cyl, disp, hp, wt seems important variables
+
 vif(lm2)
 ```
 
 ```
-##     drat     qsec     gear     carb 
-## 2.208303 1.719611 2.344295 1.908959
+##     disp       hp     drat       wt     qsec 
+## 7.452856 4.532439 2.249335 6.058621 3.146367
 ```
 
 ```r
-#common cutoff is 5, so it's safe
+#common cutoff is 5, let's see correlation between each variables
 
+out.mtcars1 %>% 
+  subset(select = -mpg) %>%
+  cor
+```
 
+```
+##            disp         hp        drat          wt        qsec
+## disp  1.0000000  0.7540401 -0.68525159  0.86252284 -0.38850705
+## hp    0.7540401  1.0000000 -0.38481506  0.59751118 -0.69249038
+## drat -0.6852516 -0.3848151  1.00000000 -0.70254744  0.01465218
+## wt    0.8625228  0.5975112 -0.70254744  1.00000000 -0.08963982
+## qsec -0.3885070 -0.6924904  0.01465218 -0.08963982  1.00000000
+```
+
+```r
 #Calculation of VIf for drat
 drat.r2 <- lm(drat~.-mpg, out.mtcars1)
 summary(drat.r2)$r.squared
 ```
 
 ```
-## [1] 0.5471636
+## [1] 0.5554241
 ```
 
 ```r
@@ -891,7 +1161,73 @@ summary(drat.r2)$r.squared
 ```
 
 ```
-## [1] 2.208303
+## [1] 2.249335
+```
+
+```r
+#Calculation of VIf for cyl
+disp.r2 <- lm(disp~.-mpg, out.mtcars1)
+summary(disp.r2)$r.squared
+```
+
+```
+## [1] 0.8658232
+```
+
+```r
+#VIF = 1/(1-R^2), here the R^2 is the R squared value when the predictor fitted by the other predictors
+1/(1-summary(disp.r2)$r.squared)
+```
+
+```
+## [1] 7.452856
+```
+
+```r
+out.mtcars2 <- out.mtcars1 %>% subset(select = -c( disp))
+
+lm3 <- lm(mpg~., data=out.mtcars2)
+
+vif(lm3)
+```
+
+```
+##       hp     drat       wt     qsec 
+## 4.321273 1.984090 3.283749 2.803516
+```
+
+```r
+summary(lm3)
+```
+
+```
+## 
+## Call:
+## lm(formula = mpg ~ ., data = out.mtcars2)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -2.9052 -1.2754 -0.2706  1.1806  3.6281 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 27.55321    7.59570   3.627  0.00134 ** 
+## hp          -0.01964    0.01069  -1.837  0.07855 .  
+## drat         0.76228    0.90190   0.845  0.40635    
+## wt          -3.94095    0.70022  -5.628 8.56e-06 ***
+## qsec         0.26787    0.31853   0.841  0.40868    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 1.821 on 24 degrees of freedom
+## Multiple R-squared:  0.8925,	Adjusted R-squared:  0.8745 
+## F-statistic:  49.8 on 4 and 24 DF,  p-value: 2.798e-11
+```
+
+```r
+#common cutoff value for VIF is 5, so it's safe now
+
+#Even though the R.squared value is decreased, this model is more likely to be a valid model
 ```
 
 
@@ -903,7 +1239,7 @@ par(mfrow=c(2,2))
 plot(lm2)
 ```
 
-![](LinearRegression_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+![](LinearRegression_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
 
 ```r
 par(mfrow=c(1,1))
@@ -924,16 +1260,16 @@ summary(resid.lm)
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -4.4346 -1.6936  0.4705  1.1748  5.3767 
+## -3.1076 -1.3244  0.2009  1.0608  3.5902 
 ## 
 ## Coefficients:
 ##                     Estimate Std. Error t value Pr(>|t|)
-## (Intercept)        7.594e-17  1.586e+00       0        1
-## lm2$fitted.values -7.941e-18  7.765e-02       0        1
+## (Intercept)       -1.588e-15  1.310e+00       0        1
+## lm2$fitted.values  8.409e-17  6.566e-02       0        1
 ## 
-## Residual standard error: 2.171 on 28 degrees of freedom
-## Multiple R-squared:  6.844e-33,	Adjusted R-squared:  -0.03571 
-## F-statistic: 1.916e-31 on 1 and 28 DF,  p-value: 1
+## Residual standard error: 1.69 on 27 degrees of freedom
+## Multiple R-squared:  8.506e-32,	Adjusted R-squared:  -0.03704 
+## F-statistic: 2.297e-30 on 1 and 27 DF,  p-value: 1
 ```
 
 ```r
@@ -970,7 +1306,7 @@ bptest(lm2) #Heteroscedasticity test, P-value < 0.05 -> homoscedasticity
 ## 	studentized Breusch-Pagan test
 ## 
 ## data:  lm2
-## BP = 9.8036, df = 4, p-value = 0.04387
+## BP = 5.7376, df = 5, p-value = 0.3326
 ```
 
 ```r
@@ -985,21 +1321,22 @@ summary(gvlma(lm2))
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -4.4346 -1.6936  0.4705  1.1748  5.3767 
+## -3.1076 -1.3244  0.2009  1.0608  3.5902 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)   1.6578     6.9091   0.240   0.8123    
-## drat          3.2305     1.2048   2.681   0.0128 *  
-## qsec         -0.1248     0.3297  -0.378   0.7083    
-## gear          4.2265     0.9094   4.647 9.29e-05 ***
-## carb         -2.2915     0.3638  -6.299 1.36e-06 ***
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 25.328066   8.076535   3.136  0.00463 ** 
+## disp         0.006860   0.008074   0.850  0.40430    
+## hp          -0.021661   0.011011  -1.967  0.06134 .  
+## drat         1.044083   0.965908   1.081  0.29093    
+## wt          -4.491025   0.956688  -4.694 9.97e-05 ***
+## qsec         0.363061   0.339420   1.070  0.29587    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 2.298 on 25 degrees of freedom
-## Multiple R-squared:  0.8556,	Adjusted R-squared:  0.8324 
-## F-statistic: 37.02 on 4 and 25 DF,  p-value: 3.666e-10
+## Residual standard error: 1.831 on 23 degrees of freedom
+## Multiple R-squared:  0.8957,	Adjusted R-squared:  0.8731 
+## F-statistic: 39.52 on 5 and 23 DF,  p-value: 1.503e-10
 ## 
 ## 
 ## ASSESSMENT OF THE LINEAR MODEL ASSUMPTIONS
@@ -1009,16 +1346,16 @@ summary(gvlma(lm2))
 ## Call:
 ##  gvlma(x = lm2) 
 ## 
-##                       Value p-value                Decision
-## Global Stat        2.362358  0.6694 Assumptions acceptable.
-## Skewness           0.013116  0.9088 Assumptions acceptable.
-## Kurtosis           0.008941  0.9247 Assumptions acceptable.
-## Link Function      0.756606  0.3844 Assumptions acceptable.
-## Heteroscedasticity 1.583695  0.2082 Assumptions acceptable.
+##                     Value p-value                   Decision
+## Global Stat        6.6386 0.15627    Assumptions acceptable.
+## Skewness           0.2337 0.62882    Assumptions acceptable.
+## Kurtosis           0.4469 0.50381    Assumptions acceptable.
+## Link Function      4.3921 0.03611 Assumptions NOT satisfied!
+## Heteroscedasticity 1.5659 0.21081    Assumptions acceptable.
 ```
 
 ```r
-#seems ok! 
+#seems ok except for link function assumption.
 ```
 
 
@@ -1028,12 +1365,6 @@ Transformation
 
 Boxcox transformation
 
-y(lambda) = 
-
-(y^(lambda)-1)/lambda if lambda != 0
-log(y)                if lambda == 0
-
-This searches the lambda that gives the maximum likelihood of y(lambda)
 
 ```r
 #I will use boxcox transformation for response 
@@ -1055,10 +1386,10 @@ library(MASS)
 ```r
 #Boxcox
 
-bc<-boxcox(lm2)
+bc<-boxcox(lm3)
 ```
 
-![](LinearRegression_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+![](LinearRegression_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
 
 ```r
 lambda <- bc$x[which.max(bc$y)]
@@ -1066,23 +1397,23 @@ lambda
 ```
 
 ```
-## [1] 0.5454545
+## [1] 0.1818182
 ```
 
 ```r
 #log transformation on predictors
-predictors <- colnames(out.mtcars1)[-1]
-mt.predictors <- out.mtcars1[,predictors]
+predictors <- colnames(out.mtcars2)[-1]
+mt.predictors <- out.mtcars2[,predictors]
 mt.predictors.trans <- apply(mt.predictors, 2, function(x){log(x+1)})
 
 #boxcox transformation on response
-trans.mpg <- (out.mtcars1$mpg)^(lambda)
+trans.mpg <- (out.mtcars2$mpg)^(lambda)
 
 trans.mtcars <- data.frame(cbind("mpg" = trans.mpg, mt.predictors.trans))
 
 #boxcox + log transformation
-lm3 <- lm(mpg~., trans.mtcars)
-summary(lm3)
+lm4 <- lm(mpg~., trans.mtcars)
+summary(lm4)
 ```
 
 ```
@@ -1091,33 +1422,78 @@ summary(lm3)
 ## lm(formula = mpg ~ ., data = trans.mtcars)
 ## 
 ## Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.60889 -0.20813  0.05378  0.22729  0.46630 
+##       Min        1Q    Median        3Q       Max 
+## -0.041126 -0.020942 -0.002838  0.018116  0.065112 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)   0.8171     2.8448   0.287 0.776301    
-## drat          2.2946     0.7951   2.886 0.007931 ** 
-## qsec         -0.4338     0.8990  -0.483 0.633576    
-## gear          2.3846     0.6099   3.910 0.000625 ***
-## carb         -1.2607     0.1985  -6.350  1.2e-06 ***
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  2.097730   0.450118   4.660 9.85e-05 ***
+## hp          -0.049382   0.030610  -1.613    0.120    
+## drat        -0.001137   0.066752  -0.017    0.987    
+## wt          -0.277994   0.048859  -5.690 7.34e-06 ***
+## qsec         0.084356   0.106737   0.790    0.437    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 0.3185 on 25 degrees of freedom
-## Multiple R-squared:  0.8572,	Adjusted R-squared:  0.8343 
-## F-statistic:  37.5 on 4 and 25 DF,  p-value: 3.195e-10
+## Residual standard error: 0.02831 on 24 degrees of freedom
+## Multiple R-squared:  0.9018,	Adjusted R-squared:  0.8854 
+## F-statistic:  55.1 on 4 and 24 DF,  p-value: 9.503e-12
 ```
 
 ```r
-#slightly improved; adj.R^2 : 0.8324 -> 0.8343
+#slightly improved; adj.R^2 : 0.8745 -> 0.8854
 
 par(mfrow=c(2,2))
 plot(lm3)
 ```
 
-![](LinearRegression_files/figure-html/unnamed-chunk-16-2.png)<!-- -->
+![](LinearRegression_files/figure-html/unnamed-chunk-17-2.png)<!-- -->
 
 ```r
 par(mfrow=c(1,1))
+
+
+summary(gvlma(lm4))
 ```
+
+```
+## 
+## Call:
+## lm(formula = mpg ~ ., data = trans.mtcars)
+## 
+## Residuals:
+##       Min        1Q    Median        3Q       Max 
+## -0.041126 -0.020942 -0.002838  0.018116  0.065112 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)  2.097730   0.450118   4.660 9.85e-05 ***
+## hp          -0.049382   0.030610  -1.613    0.120    
+## drat        -0.001137   0.066752  -0.017    0.987    
+## wt          -0.277994   0.048859  -5.690 7.34e-06 ***
+## qsec         0.084356   0.106737   0.790    0.437    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.02831 on 24 degrees of freedom
+## Multiple R-squared:  0.9018,	Adjusted R-squared:  0.8854 
+## F-statistic:  55.1 on 4 and 24 DF,  p-value: 9.503e-12
+## 
+## 
+## ASSESSMENT OF THE LINEAR MODEL ASSUMPTIONS
+## USING THE GLOBAL TEST ON 4 DEGREES-OF-FREEDOM:
+## Level of Significance =  0.05 
+## 
+## Call:
+##  gvlma(x = lm4) 
+## 
+##                      Value p-value                Decision
+## Global Stat        4.80789 0.30758 Assumptions acceptable.
+## Skewness           0.69255 0.40530 Assumptions acceptable.
+## Kurtosis           0.26233 0.60853 Assumptions acceptable.
+## Link Function      3.81749 0.05072 Assumptions acceptable.
+## Heteroscedasticity 0.03553 0.85049 Assumptions acceptable.
+```
+
+
+

@@ -11,71 +11,129 @@ editor_options:
 ---
 
 
-```{r}
+```{r, message=FALSE}
 library(dplyr)
+library(tidyr)
+library(ggplot2)
 library(car)
+```
 
+
+```{r}
+data(mtcars)
 mtcars %>% head
 #vs : V-shaped Engine = 0, straight = 1
 #am : Transmission : automatic = 0, manual = 1
 
-#Lets remove cateogrical since we are going to deal with only continuous variables
-mtcars <- mtcars %>% subset(select = -c(vs, am))
-
-base.lm <- lm(mpg~., mtcars)
-summary(base.lm)
-par(mfrow=c(2,2))
-plot(base.lm)
-par(mfrow=c(1,1))
-
-vif(base.lm)
-
-cor(mtcars)
-#disp, cyl, wt, hp removed by multicollinearity, which will be discussed below. 
-
-mtcars1 <- mtcars %>% subset(select = -c(disp, cyl, wt, hp))
-
-lm1 <- lm(mpg~.,mtcars1)
-vif(lm1)
-
+#Lets remove cateogrical variables since we are going to deal with only continuous variables
+mtcars1 <- mtcars %>% subset(select = -c(cyl, vs, am, gear, carb))
+lm1 <- lm(mpg~., mtcars1)
+summary(lm1)
 par(mfrow=c(2,2))
 plot(lm1)
 par(mfrow=c(1,1))
 
-summary(lm1)
+
 
 ```
 
 Investigating Linear Regression
 ===============
 
+Simple linear regression is defined as below, 
+
+$$Y_i = E\left(Y|X = x\right) + e_i = \beta_0 + \beta_1*x + \hat e_i$$
+where $$e_i$$ is the random error term. 
+
+We want to minimize the difference between the actual value of $y_i$ and the predicted value of $\hat y_i$. 
+
+The difference is called the residual and defined as below, 
+$$\hat e_i = y_i - \hat y_i$$
+where 
+$$\hat y_i = b_0 + b_1 x_i$$
+
+$b_0$ and $b_1$ are chosen through the method of least squares, which is to minimize the sum of squared residuals (RSS). 
+
+$$RSS = \sum_{i=1}^{n} \hat e_{i}^{2} = \sum_{i=1}^{n} \left(y_i - \hat y_i \right)^{2} = \sum_{i=1}^{n} \left(y_i - b_0 - b_1 x_i \right)^{2}$$
+
+To minimize RSS with respect to $b_0$ and $b_1$, 
+
+$$\frac{\partial RSS}{\partial b_0} = -2 \sum_{i=1}^{n} \left(y_i - b_0 - b_1 x_i \right) = 0 $$
+$$\frac{\partial RSS}{\partial b_1} = -2 \sum_{i=1}^{n} x_i \left(y_i - b_0 - b_1 x_i \right) = 0 $$
+
+Rearranging the terms in these last two equations gives 
+
+$$\hat \beta_0 = \bar y - \hat \beta_1 \bar x$$
+$$\hat \beta_1 = \frac{\sum_{i=1}^{n} \left(x_i - \bar x \right) \left(y_i - \bar y \right)}{\sum_{i=1}^{n} \left(x_i - \bar x \right)^{2}}$$ 
+
+Here, since the $\sum_{i=1}^{n}(x_i - \bar x) = 0$, we see that 
+
+$$\sum_{i=1}^{n}(x_i-\bar x)(y_i - \bar y) = \sum_{i=1}^{n}(x_i-\bar x)y_i - \bar y\sum_{i=1}^{n}(x_i-\bar x) \\= \sum_{i=1}^{n}(x_i-\bar x)y_i$$
+Therefore, 
+
+$$\hat \beta_1 = \frac{\sum_{i=1}^{n}(x_i-\bar x)y_i}{\sum_{i=1}^{n}(x_i-\bar x)^2} =  (X^{T}X)^{-1}X^{T}Y $$
+
 Coefficients - Beta Hat
 --------------
 
-Beta Hat = inverse(t(X) * X) * t(X) * y
+$\hat \beta$ is defined as.. 
+
+$$\hat \beta = (X^{T}X)^{-1}X^{T}Y$$ 
+
+
 ```{r}
 #Matrix of predictors
 X<-model.matrix(mpg~., mtcars1)
 #Coefficients 
 beta <- solve(t(X) %*% X) %*% (t(X) %*% mtcars1$mpg)
 beta
-coef(lm1)
+coef(lm1) %>% t %>% t
 
 #fitted values
 X %*% beta #This is fitted values
-predict(lm1)
+as.matrix(predict(lm1))
 
 
 ```
 
 
+Residual Standard Error
+-------------
+
+$$\hat e_i = y_i - \hat y_i $$
+$$RSS = \sum_{i=1}^{n}(y_i - \hat y_i)^2 $$
+```{r}
+#first appraoch from predicted values
+
+p <- length(lm1$coefficients)-1 # number of predictors except for intercept
+n <- length(lm1$residuals) # number of obs or resid
+
+beta.pred <- X %*% beta 
+beta.pred
+as.matrix(predict(lm1))
+
+mtcars1$mpg - predict(lm1)
+error <- with(mtcars1, mpg-predict(lm1)) #y - yhat
+RSS2.hands <- error^2 #squared (y - yhat)
+
+error
+RSS2.hands
+sum(RSS2.hands) #sum of squared (y - yhat)
+RSS.hands <- sum(RSS2.hands)
+
+#second approach from results of our model
+RSS.def <- sum(lm1$residuals**2) #sum of square residuals
+
+RSS.def
+```
+
 Standard Error for coefficients
 ---------------------
-Beta hat = inverse(t(X) * X) * t(X) * y
+$$\hat \beta = (X^{T}X)^{-1}X^{T}Y$$
 
-Var(Beta hat) = inverse(t(X) * X) * t(X) * sigma^2 * I * X * inverse(t(X) * X)
-              = sigma^2 * inverse(t(X) * X)
-              where sigma^2 = MSE in anova table
+$$Var \left(\hat \beta \right) = (X^{T}X)^{-1}X^{T}\sigma^2IX(X^{T}X)^{-1} = \sigma^2(X^{T}X)^{-1}X^{T}X(X^{T}X)^{-1} \\= \sigma^2(X^{T}X)^{-1} $$
+
+where $\sigma^2 = MSE = \frac{RSS}{n-p-1}$ in anova table, where MSE is Mean of Sum of Squared of Residuals
 
 ```{r}
 
@@ -87,61 +145,67 @@ sqrt(diag(vcov(lm1))) #Std.Error for Beta hat
 #Second approach
 solve(t(X) %*% X) #inverse of X'X 
 
-anova(lm1)[[3]][5] #RSS^2 = Mean of Sum of Squared of Residuals
+anova(lm1)
+anova(lm1)[['Mean Sq']][length(anova(lm1)[['Mean Sq']])]#Mean of Sum of Squared of Residuals
 
-solve(t(X) %*% X)*anova(lm1)[[3]][5] #variance-covariance
+MSE <- RSS.hands/(n-p-1)
+MSE
+
+#This is vcov(lm1)
+solve(t(X) %*% X)*MSE #variance-covariance
 
 inv.XX <- solve(t(X) %*% X) #inverse of X'X
 
-se <- sqrt(diag(inv.XX)*anova(lm1)[[3]][5]) #Std.error for coefficients
+se <- sqrt(diag(inv.XX)*MSE) #Std.error for coefficients
 se
 
 summary(lm1)[["coefficients"]][,"Std. Error"]
 ```
 
 
-t-value
+T-value
 ----------------
 Test: 
 
-Null H0 : Beta1 = 0 
+Null $H_0$ : $\beta_1 = 0$
 against,
-Alt HA : Beta1 != 0
+Alternative $H_A$: $\beta _1\neq 0$
 
-t-statistic = (Beta1 hat - Beta1(=0)) / se(Beta1 hat)
+T statistic = $\frac{\hat \beta_1 - \beta_1}{se(\hat \beta_1)}$
 
-
+We set the $\beta_1 = 0$ in the formula to test the hypothesis $H_0$ : $\beta_1 = 0$. 
 ```{r}
 #t-value = beta / se
 (beta - 0)/ se
-summary(lm1)[["coefficients"]][,"t value"]
+as.matrix(summary(lm1)[["coefficients"]][,"t value"])
 
 ```
 
 p-value
 ----------------
 ```{r}
-#P-value from t distribution, degrees of freedom = n-p+1, where p is # of predictors, n = 32, p = 7
+#P-value from t distribution, degrees of freedom = n-p-1, where p is # of predictors, n = 32, p = 6
+tvalue <- summary(lm1)[["coefficients"]][,"t value"]
 
-tvalue <- summary(lm1)[["coefficients"]][, "t value"]
-
-#p value
-pvalue <- sapply(tvalue, function(x){pt(-abs(x), df=(nrow(mtcars1)-dim(mtcars1)[2]), lower.tail=TRUE)*2})
+#p value by t student distribution
+pvalue <- 
+  sapply(tvalue, function(x){pt(-abs(x), df=(nrow(mtcars1)-dim(mtcars1)[2]), lower.tail=TRUE)*2})
 pvalue
 
 summary(lm1)[["coefficients"]][, "Pr(>|t|)"]
 
 ```
 
-confidence interval for coefficients
+Confidence Interval for Coefficients
 ----------------
 
 Confidence Interval for Coefficients.. 
 
-Beta hat +/- se(Beta hat) * t(alpha/2, n-p-1)
+$$CI = \hat \beta_1 \pm se(\hat \beta_1)*t(\frac{\alpha}{2}, n-p-1)$$
 
-where t(alpha/2, n-p-1) is the 100(1-alpha/2)th quantile of the t-distribution with n-(p+1) degrees of freedom. 
+where $t(\frac{\alpha}{2}, n-p-1)$ is the $100(1-\frac{\alpha}{2})$th quantile of the t-distribution with $n-p-1$ degrees of freedom. 
 
+For 95% confidence interval,  
 ```{r}
 #confidence interval for each coef
 confint(lm1)
@@ -149,65 +213,35 @@ confint(lm1)
 #confidence interval
 beta.conf <- data.frame("2.5%" = beta - se*(-qt(0.025,nrow(mtcars1)-dim(mtcars1)[2])),
                "97.5%" = beta + se*(-qt(0.025,nrow(mtcars1)-dim(mtcars1)[2])))
-colnames(beta.conf) <- c("lower 2.5%", "upper 97.5%")
+colnames(beta.conf) <- c("2.5%", "97.5%")
 beta.conf
 
 confint(lm1)
-
-```
-
-Residual Standard Error
--------------
-
-error = y-yhat
-Residual Sum of Squared = sqrt(sum((y-yhat)^2)/(n-(p+1)))
-```{r}
-#first appraoch from predicted values
-
-p <- length(lm1$coefficients)-1 # number of predictors except for intercept
-n <- length(lm1$residuals) # number of obs or resid
-
-beta.pred <- X %*% beta 
-predict(lm1)
-
-error <- with(mtcars1, mpg-predict(lm1)) #y - yhat
-RSS2 <- with(mtcars1, error^2) #squared (y - yhat)
-
-sum(RSS2) #sum of squared (y - yhat)
-RSS <- sqrt(sum(RSS2)/(n-(p+1)))  #sqrt of sum of squared (y - yhat) = RSS
-RSS
-
-#second approach from results of our model
-RSS2 <- sum(lm1$residuals**2) #sum of square residuals
-df <- n-(p+1) #degrees of freedom adding 1
-
-RSS <- sqrt(RSS2 / df)
-RSS
 ```
 
 
 
 R squared - Explained variability of response variable
 --------------
-From,
+From the below, 
 
-SST = SSR + RSS, 
-where SST = sum of squared of Y
-      SSR = sum of squared of regressor
-      RSS = residual of sum of squared
-      
-1 = SSR/SST + RSS/SST
-R Squared = SSR/SST = 1-RSS/SST
+$$SST = SSR + RSS$$
+where $SST = SYY = \sum_{i=1}^{n}(y_i - \hat y_i)$ is sum of sqaured of $Y$, 
+      $SSR = \sum_{i=1}^{n}(\hat y_i - \bar y)^2$ is regression sum of squares (sum of squares explained by the regression model)
 
-If we have one predictor, then R Squared = (correlation y and x)^2
+$$1 = \frac{SSR}{SST} + \frac{RSS}{SST} $$
+$$R^2 = \frac{SSR}{SST} = 1-\frac{RSS}{SST}$$
+where $R^2$ is the coefficient of determination of the regression line, which is the proportion of the total sample variability in the Y's explained by the regressionl model. 
 
+If we have one predictor, then $R^2 = corr(y_i,x_i)^2$ 
 ```{r}
 #R^2 = 1 - RSS/SST, here SST = SYY
-SYY <- sum((mtcars$mpg - mean(mtcars$mpg))^2)
-RSS2
+SYY <- sum((mtcars1$mpg - mean(mtcars1$mpg))^2)
+SYY
+RSS.hands #sum of squared of residuals
 
-#R^2
-R2<-1-(RSS2/SYY)
+#R^2 = 1 - RSS/SST = 1 - RSS/SYY
+R2<-1-(RSS.hands/SYY)
 R2
 
 summary(lm1)$r.squared
@@ -215,9 +249,14 @@ summary(lm1)$r.squared
 
 Adjusted R squared - for multiple variables
 -----------------
+
+For the model adding more predictors, we often use the $R_{adj}^2$ defined by,
+
+$$R_{adj}^2 = \frac{1 - \frac{RSS}{n-p-1}}{\frac{SST}{n-1}}$$
+
 ```{r}
 #Adjusted R Squared are normalized R Squared by taking into account how many samples and how many variables are used. 
-adj.R2 <- 1-(RSS2/SYY)*(n-1)/(n-(p+1))
+adj.R2 <- 1-(RSS.hands/SYY)*(n-1)/(n-(p+1))
 adj.R2
 
 summary(lm1)$adj.r.squared
@@ -227,23 +266,28 @@ summary(lm1)$adj.r.squared
 
 F Statistics
 ---------------
+
+F test statistic is defined as $\frac{explained \, variance}{unexplained \, variance}$, 
+which here is $\frac{SSR/p}{RSS/(n-p-1)} = \frac{(SST-RSS)/p}{RSS/(n-p-1)}$
 ```{r}
 #It's investigating the hypothesis; at least one of coefficients is not zero
-((SYY - RSS2)/p) / (RSS2/(n-(p+1)))
+((SYY - RSS.hands)/p) / (RSS.hands/(n-(p+1)))
 
 summary(lm1)$fstatistic[1]
 ```
 
-p value - F Statistics
+p value for F Statistics
 ---------------
 ```{r}
-fvalue <- ((SYY - RSS2)/p) / (RSS2/(n-(p+1)))
+fvalue <- ((SYY - RSS.hands)/p) / (RSS.hands/(n-(p+1)))
 fvalue
 
 #P-value for F statistics
 pf(fvalue, p, n-(p+1), lower.tail=FALSE)
 
-summary(lm1)
+sum.lm1 <- summary(lm1)
+
+pf(sum.lm1$fstatistic[1],sum.lm1$fstatistic[2],sum.lm1$fstatistic[3],lower.tail=FALSE)
 ```
 
 
@@ -259,24 +303,50 @@ Assumptions of Linear Regression
 1. Outliers
 -----------------
 ```{r}
+cooks <- cooks.distance(lm1)
+hat <- lm.influence(lm1)$hat
+
+
+infl <- rstandard(lm1, infl = lm.influence(lm1, do.coef = FALSE),
+          sd = sqrt(deviance(lm1)/df.residual(lm1)),
+          type=c("sd.1", "predictive"))
+
+mtcars1$cooks <- cooks
+mtcars1$hat <- hat
+mtcars1$inf <- infl
+
+mtcars1 %>% gather(-mpg,-cooks, -hat, -inf, key = "var", value = "value") %>%
+  ggplot(aes(x=value, y=mpg, color = cooks > qf(.1, p, n-p))) +
+  geom_jitter()+
+  facet_wrap(~var, scales="free") +
+  scale_color_manual(name = "big cooks", values = setNames(c('red', 'black'), c(T,F)))
+
+mtcars1 %>% gather(-mpg,-cooks, -hat, -inf, key = "var", value = "value") %>%
+  ggplot(aes(x=value, y=mpg, color = hat > 2*(p/n))) +
+  geom_jitter()+
+  facet_wrap(~var, scales="free") +
+  scale_color_manual(name = "big hat values", values = setNames(c('blue', 'black'), c(T,F)))
+
+mtcars1 %>% gather(-mpg,-cooks, -hat,-inf, key = "var", value = "value") %>%
+  ggplot(aes(x=value, y=mpg, color = abs(inf) > 2)) +
+  geom_jitter()+
+  facet_wrap(~var, scales="free") +
+  scale_color_manual(name = "big std error", values = setNames(c('green', 'black'), c(T,F)))
+
+mtcars1 <- mtcars1 %>% subset(select = -c(cooks, hat, inf))
 
 #Sqrt(standardized residuals) > 2 or < -2 by influence
-o1<-which(rstandard(lm1, infl = lm.influence(lm1, do.coef = FALSE),
-          sd = sqrt(deviance(lm1)/df.residual(lm1)),
-          type=c("sd.1", "predictive"))>2)
+outliers <- which(abs(infl) > 2)
 
-o2<-which(rstandard(lm1, infl = lm.influence(lm1, do.coef = FALSE),
-          sd = sqrt(deviance(lm1)/df.residual(lm1)),
-          type=c("sd.1", "predictive"))<(-2))
-
-outliers <- c(o1, o2)
 length(outliers)
 
 out.mtcars1 <- mtcars1[-outliers,]
 
 lm2 <- lm(mpg~., out.mtcars1)
 summary(lm2)
-#much improved by removing only 2 outliers
+#much improved by removing only 3 outliers
+#R.squared: 0.8489 -> 0.8957
+#adj R.squared: 0.8199 -> 0.8731
 
 par(mfrow=c(2,2))
 plot(lm2)
@@ -288,7 +358,15 @@ par(mfrow=c(1,1))
 --------------------
 ```{r}
 library(e1071) #skewness / kurtosis
-densityPlot(lm2$residuals)
+
+resid <- data.frame(residuals = lm2$residuals)
+resid
+
+resid %>%
+  ggplot(aes(x=residuals)) +
+  geom_density() +
+  xlim(c(-6,6))
+
 skewness(lm2$residuals) #we would say this is not normal
 kurtosis(lm2$residuals) #well?
 shapiro.test(lm2$residuals) #P-value > 0.05, then it's normal distribution
@@ -299,17 +377,23 @@ shapiro.test(lm2$residuals) #P-value > 0.05, then it's normal distribution
 3. Multicollinearity 
 -------------------
 ```{r}
-#I actually remove those predictors that have correlation each other predictors,
-#which have collinearity. 
-
 library(Matrix)
 out.mtcars1 %>% dim
 mat <- model.matrix(mpg~., out.mtcars1)
-rankMatrix(mat)[1] #full rank of our predictors matrix
+rankMatrix(mat)[1] 
+
+#full rank of our predictors matrix
+identical(dim(out.mtcars1)[2], rankMatrix(mat)[1])
+
+summary(lm2)
+#cyl, disp, hp, wt seems important variables
 
 vif(lm2)
-#common cutoff is 5, so it's safe
+#common cutoff is 5, let's see correlation between each variables
 
+out.mtcars1 %>% 
+  subset(select = -mpg) %>%
+  cor
 
 #Calculation of VIf for drat
 drat.r2 <- lm(drat~.-mpg, out.mtcars1)
@@ -317,6 +401,26 @@ summary(drat.r2)$r.squared
 
 #VIF = 1/(1-R^2), here the R^2 is the R squared value when the predictor fitted by the other predictors
 1/(1-summary(drat.r2)$r.squared)
+
+
+#Calculation of VIf for cyl
+disp.r2 <- lm(disp~.-mpg, out.mtcars1)
+summary(disp.r2)$r.squared
+
+#VIF = 1/(1-R^2), here the R^2 is the R squared value when the predictor fitted by the other predictors
+1/(1-summary(disp.r2)$r.squared)
+
+out.mtcars2 <- out.mtcars1 %>% subset(select = -c( disp))
+
+lm3 <- lm(mpg~., data=out.mtcars2)
+
+vif(lm3)
+
+
+summary(lm3)
+#common cutoff value for VIF is 5, so it's safe now
+
+#Even though the R.squared value is decreased, this model is more likely to be a valid model
 ```
 
 
@@ -347,7 +451,7 @@ bptest(lm2) #Heteroscedasticity test, P-value < 0.05 -> homoscedasticity
 library(gvlma)#Gloval Validation of Linear Models Assumptions
 summary(gvlma(lm2))
 
-#seems ok! 
+#seems ok except for link function assumption.
 ```
 
 
@@ -357,12 +461,6 @@ Transformation
 
 Boxcox transformation
 
-y(lambda) = 
-
-(y^(lambda)-1)/lambda if lambda != 0
-log(y)                if lambda == 0
-
-This searches the lambda that gives the maximum likelihood of y(lambda)
 ```{r}
 #I will use boxcox transformation for response 
 #and log transformation for predictors if it would improve our model
@@ -370,28 +468,33 @@ library(MASS)
 
 #Boxcox
 
-bc<-boxcox(lm2)
+bc<-boxcox(lm3)
 lambda <- bc$x[which.max(bc$y)]
 lambda
 
 
 #log transformation on predictors
-predictors <- colnames(out.mtcars1)[-1]
-mt.predictors <- out.mtcars1[,predictors]
+predictors <- colnames(out.mtcars2)[-1]
+mt.predictors <- out.mtcars2[,predictors]
 mt.predictors.trans <- apply(mt.predictors, 2, function(x){log(x+1)})
 
 #boxcox transformation on response
-trans.mpg <- (out.mtcars1$mpg)^(lambda)
+trans.mpg <- (out.mtcars2$mpg)^(lambda)
 
 trans.mtcars <- data.frame(cbind("mpg" = trans.mpg, mt.predictors.trans))
 
 #boxcox + log transformation
-lm3 <- lm(mpg~., trans.mtcars)
-summary(lm3)
-#slightly improved; adj.R^2 : 0.8324 -> 0.8343
+lm4 <- lm(mpg~., trans.mtcars)
+summary(lm4)
+#slightly improved; adj.R^2 : 0.8745 -> 0.8854
 
 par(mfrow=c(2,2))
 plot(lm3)
 par(mfrow=c(1,1))
 
+
+summary(gvlma(lm4))
 ```
+
+
+
