@@ -2,10 +2,6 @@
 title: "Linear Regression"
 author: "Yongbock (David) Kwon"
 output:
-  html_document:
-    keep_md: true
-  html_notebook: default
-  pdf_document: default
   github_document:
     pandoc_args: --webtex
 editor_options:
