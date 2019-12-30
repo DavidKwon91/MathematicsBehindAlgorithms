@@ -54,12 +54,17 @@ $$\hat y_i = b_0 + b_1 x_i$$
 
 $b_0$ and $b_1$ are chosen through the method of least squares, which is to minimize the sum of squared residuals (RSS). 
 
-$$RSS = \sum_{i=1}^{n} \hat e_{i}^{2} = \sum_{i=1}^{n} (y_i - \hat y_i )^{2} = \sum_{i=1}^{n} (y_i - b_0 - b_1 x_i )^{2}$$
+$$RSS = \sum_{i=1}^{n} \hat e_{i}^{2} = \sum_{i=1}^{n} (y_i - \hat y_i)^{2} = \sum_{i=1}^{n}(y_i - b_0 - b_1 x_i )^{2}$$
 
 To minimize RSS with respect to $b_0$ and $b_1$, 
 
+For $b_0$, 
+
 $$\frac{\partial RSS}{\partial b_0} = -2 \sum_{i=1}^{n} (y_i - b_0 - b_1 x_i) = 0 $$
-$$\frac{\partial RSS}{\partial b_1} = -2 \sum_{i=1}^{n} x_i (y_i - b_0 - b_1 x_i ) = 0 $$
+
+For $b_1$, 
+
+$$\frac{\partial RSS}{\partial b_1} = -2 \sum_{i=1}^{n} x_i(y_i-b_0-b_1x_i ) = 0 $$
 
 Rearranging the terms in these last two equations gives 
 

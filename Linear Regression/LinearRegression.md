@@ -99,24 +99,29 @@ squared residuals (RSS).
 
   
 ![RSS = \\sum\_{i=1}^{n} \\hat e\_{i}^{2} = \\sum\_{i=1}^{n} (y\_i -
-\\hat y\_i )^{2} = \\sum\_{i=1}^{n} (y\_i - b\_0 - b\_1 x\_i
-)^{2}](https://latex.codecogs.com/png.latex?RSS%20%3D%20%5Csum_%7Bi%3D1%7D%5E%7Bn%7D%20%5Chat%20e_%7Bi%7D%5E%7B2%7D%20%3D%20%5Csum_%7Bi%3D1%7D%5E%7Bn%7D%20%28y_i%20-%20%5Chat%20y_i%20%29%5E%7B2%7D%20%3D%20%5Csum_%7Bi%3D1%7D%5E%7Bn%7D%20%28y_i%20-%20b_0%20-%20b_1%20x_i%20%29%5E%7B2%7D
-"RSS = \\sum_{i=1}^{n} \\hat e_{i}^{2} = \\sum_{i=1}^{n} (y_i - \\hat y_i )^{2} = \\sum_{i=1}^{n} (y_i - b_0 - b_1 x_i )^{2}")  
+\\hat y\_i)^{2} = \\sum\_{i=1}^{n}(y\_i - b\_0 - b\_1 x\_i
+)^{2}](https://latex.codecogs.com/png.latex?RSS%20%3D%20%5Csum_%7Bi%3D1%7D%5E%7Bn%7D%20%5Chat%20e_%7Bi%7D%5E%7B2%7D%20%3D%20%5Csum_%7Bi%3D1%7D%5E%7Bn%7D%20%28y_i%20-%20%5Chat%20y_i%29%5E%7B2%7D%20%3D%20%5Csum_%7Bi%3D1%7D%5E%7Bn%7D%28y_i%20-%20b_0%20-%20b_1%20x_i%20%29%5E%7B2%7D
+"RSS = \\sum_{i=1}^{n} \\hat e_{i}^{2} = \\sum_{i=1}^{n} (y_i - \\hat y_i)^{2} = \\sum_{i=1}^{n}(y_i - b_0 - b_1 x_i )^{2}")  
 
 To minimize RSS with respect to
 ![b\_0](https://latex.codecogs.com/png.latex?b_0 "b_0") and
 ![b\_1](https://latex.codecogs.com/png.latex?b_1 "b_1"),
+
+For ![b\_0](https://latex.codecogs.com/png.latex?b_0 "b_0"),
 
   
 ![\\frac{\\partial RSS}{\\partial b\_0} = -2 \\sum\_{i=1}^{n} (y\_i -
 b\_0 - b\_1 x\_i) = 0
 ](https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20RSS%7D%7B%5Cpartial%20b_0%7D%20%3D%20-2%20%5Csum_%7Bi%3D1%7D%5E%7Bn%7D%20%28y_i%20-%20b_0%20-%20b_1%20x_i%29%20%3D%200%20
 "\\frac{\\partial RSS}{\\partial b_0} = -2 \\sum_{i=1}^{n} (y_i - b_0 - b_1 x_i) = 0 ")  
+
+For ![b\_1](https://latex.codecogs.com/png.latex?b_1 "b_1"),
+
   
-![\\frac{\\partial RSS}{\\partial b\_1} = -2 \\sum\_{i=1}^{n} x\_i (y\_i
-- b\_0 - b\_1 x\_i ) = 0
-](https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20RSS%7D%7B%5Cpartial%20b_1%7D%20%3D%20-2%20%5Csum_%7Bi%3D1%7D%5E%7Bn%7D%20x_i%20%28y_i%20-%20b_0%20-%20b_1%20x_i%20%29%20%3D%200%20
-"\\frac{\\partial RSS}{\\partial b_1} = -2 \\sum_{i=1}^{n} x_i (y_i - b_0 - b_1 x_i ) = 0 ")  
+![\\frac{\\partial RSS}{\\partial b\_1} = -2 \\sum\_{i=1}^{n}
+x\_i(y\_i-b\_0-b\_1x\_i ) = 0
+](https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20RSS%7D%7B%5Cpartial%20b_1%7D%20%3D%20-2%20%5Csum_%7Bi%3D1%7D%5E%7Bn%7D%20x_i%28y_i-b_0-b_1x_i%20%29%20%3D%200%20
+"\\frac{\\partial RSS}{\\partial b_1} = -2 \\sum_{i=1}^{n} x_i(y_i-b_0-b_1x_i ) = 0 ")  
 
 Rearranging the terms in these last two equations gives
 
