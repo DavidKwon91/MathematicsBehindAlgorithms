@@ -6,6 +6,8 @@ output:
     keep_md: true
   html_notebook: default
   pdf_document: default
+  github_document:
+    pandoc_args: --webtex
 editor_options:
   chunk_output_type: console
 ---
