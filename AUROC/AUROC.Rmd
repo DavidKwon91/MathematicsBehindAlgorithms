@@ -2,25 +2,26 @@
 title: "ROC"
 author: "Yongbock(David) Kwon"
 output:
-  html_document:
-    keep_md: true
-  html_notebook: default
-  pdf_document: default
+  github_document:
+    pandoc_args: --webtex
+    toc: true
+    toc_depth: 2
 editor_options:
   chunk_output_type: console
 ---
 
 
-## Assumtion
+Assumtion
+=============
 
-#### I suppose... 
+I suppose... 
 
-#### 1 is always positive, for example, "Fraud", "Disease", or some one of binary value that has less obs than the obs of the other factor levels, so that we want to predict well. 
+1 is always positive, for example, "Fraud", "Disease", or some one of binary value that has less obs than the obs of the other factor levels, so that we want to predict well. 
 
-#### 0 is always negative, for example, "not Fraud", "not Disease", or some one of binary value that has less obs than the obs of the other factor levels. 
+0 is always negative, for example, "not Fraud", "not Disease", or some one of binary value that has less obs than the obs of the other factor levels. 
 
 
-#### Thorough CV process and tuning parameters have been skipped since this will focus on Classification metrics. 
+Thorough CV process and tuning parameters have been skipped since this will focus on Classification metrics. 
 
 ```{r}
 library(pROC)
@@ -32,7 +33,12 @@ library(MLmetrics)
 library(rpart)
 library(rpart.plot)
 library(ROCR)
+library(caret)
 ```
+
+
+TP/FP/TN/FN
+--------------
 
 ```{r}
 set.seed(1231234)
@@ -80,6 +86,8 @@ tp.dat
 ```
 
 
+Precision/Recall/Specificity/F1-score
+---------------------
 
 ```{r}
 
@@ -126,6 +134,8 @@ f1.score(tp.dat)
 ```
 
 
+ROC/AUC
+----------------
 
 ```{r}
 
@@ -219,6 +229,9 @@ auc.func(target, pred)
 
 
 
+Model
+==============
+
 ```{r}
 
 data(PimaIndiansDiabetes)
@@ -264,6 +277,11 @@ control <- trainControl(method = "cv", number = 10,
                         summaryFunction = prSummary)
 ```
 
+
+
+
+Decision Tree
+---------------
 
 ```{r}
 
@@ -344,6 +362,11 @@ auc.dtree <- 1-auc.func(test$diabetes, dtree.pred1)
 auc.dtree
 ```
 
+
+
+Random Forest
+---------------
+
 ```{r}
 
 #Random Forest
@@ -423,7 +446,8 @@ auc.rf
 ```
 
 
-
+Logistic Regression
+-------------------
 
 ```{r}
 
@@ -501,7 +525,8 @@ auc.glm
 ```
 
 
-
+SVM
+-------------------
 
 ```{r}
 

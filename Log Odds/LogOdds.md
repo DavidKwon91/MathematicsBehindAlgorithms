@@ -1,40 +1,31 @@
----
-title: "Log Odds"
-author: "David (Yongbock) Kwon"
-output:
-  html_document:
-    keep_md: true
-  html_notebook: default
-  pdf_document: default
-editor_options:
-  chunk_output_type: console
----
+Log Odds
+================
+David (Yongbock) Kwon
 
-About Log odds.. 
---------------------------
+  - [Log Odds (Logit)](#log-odds-logit)
+      - [About Log odds..](#about-log-odds..)
+      - [With Titanic Dataset](#with-titanic-dataset)
 
-```r
+# Log Odds (Logit)
+
+## About Log odds..
+
+``` r
 library(dplyr)
 ```
 
-```
-## 
-## Attaching package: 'dplyr'
-```
+    ## 
+    ## Attaching package: 'dplyr'
 
-```
-## The following objects are masked from 'package:stats':
-## 
-##     filter, lag
-```
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     filter, lag
 
-```
-## The following objects are masked from 'package:base':
-## 
-##     intersect, setdiff, setequal, union
-```
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     intersect, setdiff, setequal, union
 
-```r
+``` r
 #creating function to make Logodds table
 #and re-convert them to probability with sigmoid function
 
@@ -60,18 +51,14 @@ prob.tab <- function(x,y){
 library(e1071)
 ```
 
-```
-## 
-## Attaching package: 'e1071'
-```
+    ## 
+    ## Attaching package: 'e1071'
 
-```
-## The following object is masked _by_ '.GlobalEnv':
-## 
-##     sigmoid
-```
+    ## The following object is masked _by_ '.GlobalEnv':
+    ## 
+    ##     sigmoid
 
-```r
+``` r
 a<-0
 
 #generating 10000 log odds of uniform random variables
@@ -92,42 +79,34 @@ for(i in 1:10000){
 hist(a, breaks = 20)
 ```
 
-![](LogOdds_files/figure-html/prop.func-1.png)<!-- -->
+![](LogOdds_files/figure-gfm/prop.func-1.png)<!-- -->
 
-```r
+``` r
 #The histogram shows that it's really similar to the normal distribution with mean 0. 
 mean(a)
 ```
 
-```
-## [1] 0.001649712
-```
+    ## [1] 0.002606809
 
-```r
+``` r
 sd(a)
 ```
 
-```
-## [1] 0.1636492
-```
+    ## [1] 0.1625608
 
-```r
+``` r
 skewness(a)
 ```
 
-```
-## [1] 0.02720091
-```
+    ## [1] 0.03474915
 
-```r
+``` r
 kurtosis(a)
 ```
 
-```
-## [1] 0.04245178
-```
+    ## [1] -0.07854539
 
-```r
+``` r
 #Let's generate 2 binary random variable by uniform distribution
 yn <- ifelse(runif(1000,0,1)<0.4, "yes","no")
 ab <- ifelse(runif(1000,0,1)<0.2, "a","b")
@@ -136,41 +115,33 @@ mat <- as.matrix(table(yn,ab))
 mat
 ```
 
-```
-##      ab
-## yn      a   b
-##   no  126 449
-##   yes  85 340
-```
+    ##      ab
+    ## yn      a   b
+    ##   no  131 443
+    ##   yes  91 335
 
-```r
+``` r
 #The standard deviation of the matrix of the 2 r.v
 #is quite similar to the standard deviation of 10000 log odds
 sqrt(1/mat[1,1] + 1/mat[1,2] + 1/mat[2,1] + 1/mat[2,2])
 ```
 
-```
-## [1] 0.1577009
-```
+    ## [1] 0.154483
 
-```r
+``` r
 sd(a)
 ```
 
-```
-## [1] 0.1636492
-```
+    ## [1] 0.1625608
 
-```r
+``` r
 #It will show that this log odds is how far from mean 0 by dividing standard deviation
 log((mat[1,1]/mat[1,2])/(mat[2,1]/mat[2,2])) / sd(a)
 ```
 
-```
-## [1] 0.7061043
-```
+    ## [1] 0.5222574
 
-```r
+``` r
 #If it's far away from mean 0 usually about 2 standard deviation 
 #from the mean of the normal distribution,
 #then we could say that it's statistically significant. 
@@ -180,18 +151,20 @@ log((mat[1,1]/mat[1,2])/(mat[2,1]/mat[2,2])) / sd(a)
 #and randomply picked a number to make it binary variable 
 ```
 
+## With Titanic Dataset
 
-
-
-With Titanic Dataset
---------------------
-
-```r
+``` r
 #Let's see how this works for our predictors
 ##Survived ~ Sex logodds
 
-train <- read.csv("~/Desktop/Practice/Kaggle/Titanic/Datasets/train.csv", stringsAsFactors = TRUE, na.strings = "")
-test <- read.csv("~/Desktop/Practice/Kaggle/Titanic/Datasets/train.csv", stringsAsFactors = TRUE, na.strings = "")
+getwd()
+```
+
+    ## [1] "C:/Users/husie/Desktop/Kaggle/Github/MathematicsBehindAlgorithms/Log Odds"
+
+``` r
+train <- read.csv("Datasets/train.csv", stringsAsFactors = TRUE, na.strings = "")
+test <- read.csv("Datasets/train.csv", stringsAsFactors = TRUE, na.strings = "")
 
 test$Survived <- NA
 dat <- rbind(train,test)
@@ -210,20 +183,16 @@ tab <- table(dat$Survived, dat$Sex)
 sqrt(1/tab[1,1] + 1/tab[1,2] + 1/tab[2,1] + 1/tab[2,2])
 ```
 
-```
-## [1] 0.1671783
-```
+    ## [1] 0.1671783
 
-```r
+``` r
 #This will show that the log odds is how far from the mean 0 
 log((tab[2,1]/tab[1,1]) / (tab[2,2]/tab[1,2])) / sqrt(1/tab[1,1] + 1/tab[1,2] + 1/tab[2,1] + 1/tab[2,2])
 ```
 
-```
-## [1] 15.0361
-```
+    ## [1] 15.0361
 
-```r
+``` r
 #The logodds of the probability of survival given Sex is quite far away from the mean of the normal distribution
 #which means that Sex have significant relationship with Survival
 
@@ -243,11 +212,9 @@ sdt <- sqrt(1/tab[1,1] + 1/(tab[1,2] + tab[1,3]) + 1/tab[2,1] + 1/(tab[2,2] + ta
 lo/sdt
 ```
 
-```
-## [1] -8.260844
-```
+    ## [1] -8.260844
 
-```r
+``` r
 #Pclass 1 seems important since it's about 8 sd away from mean
 
 
@@ -259,11 +226,9 @@ sdt <- sqrt(1/tab[1,2] + 1/(tab[1,3] + tab[1,1]) + 1/tab[2,2] + 1/(tab[2,3] + ta
 lo/sdt
 ```
 
-```
-## [1] -2.773732
-```
+    ## [1] -2.773732
 
-```r
+``` r
 #The value is much less than Pclass 1, we might say it's significant factor, but less powerful than Pclass1
 
 
@@ -274,11 +239,9 @@ sdt <- sqrt(1/tab[1,3] + 1/(tab[1,2] + tab[1,1]) + 1/tab[2,3] + 1/(tab[2,2] + ta
 lo/sdt
 ```
 
-```
-## [1] 9.408971
-```
+    ## [1] 9.408971
 
-```r
+``` r
 #Pclass3 is bigger than other Pclass, so we could say this is the most important factor among Pclass factors. 
 
 
@@ -289,14 +252,12 @@ tab <- table(dat$Survived, dat$Embarked)
 tab
 ```
 
-```
-##    
-##       C   Q   S
-##   0  75  47 427
-##   1  93  30 217
-```
+    ##    
+    ##       C   Q   S
+    ##   0  75  47 427
+    ##   1  93  30 217
 
-```r
+``` r
 #Given Embarked C, the log odds of not survival 
 lo <- log((tab[1,1]/tab[2,1]) / ((tab[1,2] + tab[1,3]) / (tab[2,2] + tab[2,3])))
 sdt <- sqrt(1/tab[1,1] + 1/(tab[1,2] + tab[1,3]) + 1/tab[2,1] + 1/(tab[2,2] + tab[2,3]))
@@ -304,11 +265,9 @@ sdt <- sqrt(1/tab[1,1] + 1/(tab[1,2] + tab[1,3]) + 1/tab[2,1] + 1/(tab[2,2] + ta
 lo/sdt
 ```
 
-```
-## [1] -4.984968
-```
+    ## [1] -4.984968
 
-```r
+``` r
 #Embarked C seems meaningful. 
 
 #Given Embarked Q, the log odds of not survival
@@ -318,11 +277,9 @@ sdt <- sqrt(1/tab[1,2] + 1/(tab[1,3] + tab[1,1]) + 1/tab[2,2] + 1/(tab[2,3] + ta
 lo/sdt
 ```
 
-```
-## [1] -0.135233
-```
+    ## [1] -0.135233
 
-```r
+``` r
 #Given Embarked Q, this factor seems not important to make for the binary prediction of survival
 
 
@@ -333,11 +290,9 @@ sdt <- sqrt(1/tab[1,3] + 1/(tab[1,2] + tab[1,1]) + 1/tab[2,3] + 1/(tab[2,2] + ta
 lo/sdt
 ```
 
-```
-## [1] 4.490127
-```
+    ## [1] 4.490127
 
-```r
+``` r
 #Embarked S seems meaningful. 
 
 
@@ -371,30 +326,24 @@ log.odds.given <- function(x,y){
 log.odds.given(dat$Survived, dat$Pclass)
 ```
 
-```
-##          [,1]      [,2]      [,3]
-## [1,] 1.353355 0.4636158 -1.370792
-## [2,] 8.260844 2.7737321 -9.408971
-```
+    ##          [,1]      [,2]      [,3]
+    ## [1,] 1.353355 0.4636158 -1.370792
+    ## [2,] 8.260844 2.7737321 -9.408971
 
-```r
+``` r
 #Pclass 1 and 3 important, and 2 not
 log.odds.given(dat$Survived, dat$Embarked)
 ```
 
-```
-##           [,1]      [,2]      [,3]
-## [1,] 0.8669304 0.0330776 -0.685050
-## [2,] 4.9849681 0.1352330 -4.490127
-```
+    ##           [,1]      [,2]      [,3]
+    ## [1,] 0.8669304 0.0330776 -0.685050
+    ## [2,] 4.9849681 0.1352330 -4.490127
 
-```r
+``` r
 #we could say that Embarked Q is rarely important for Survival
 log.odds.given(dat$Survived, dat$Sex)
 ```
 
-```
-##          [,1]      [,2]
-## [1,]  2.51371  -2.51371
-## [2,] 15.03610 -15.03610
-```
+    ##          [,1]      [,2]
+    ## [1,]  2.51371  -2.51371
+    ## [2,] 15.03610 -15.03610

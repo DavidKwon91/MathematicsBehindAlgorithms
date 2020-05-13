@@ -1,74 +1,53 @@
----
-title: "Decision Tree"
-author: "Yongbock(David) Kwon"
-output:
-  html_document:
-    keep_md: true
-  html_notebook: default
-  pdf_document: default
-editor_options:
-  chunk_output_type: console
----
+Decision Tree
+================
+Yongbock(David) Kwon
 
+  - [Decision Tree](#decision-tree)
+      - [Algorithms](#algorithms)
+      - [Implementation with Iris
+        Dataset](#implementation-with-iris-dataset)
+      - [Implementation with random
+        data](#implementation-with-random-data)
+      - [Decision Tree with Entropy](#decision-tree-with-entropy)
+      - [Decision Tree with Gini](#decision-tree-with-gini)
 
+# Decision Tree
 
-```r
+``` r
 library(caret)
 ```
 
-```
-## Loading required package: lattice
-```
+    ## Loading required package: lattice
 
-```
-## Loading required package: ggplot2
-```
+    ## Loading required package: ggplot2
 
-```
-## Registered S3 methods overwritten by 'ggplot2':
-##   method         from 
-##   [.quosures     rlang
-##   c.quosures     rlang
-##   print.quosures rlang
-```
-
-```r
+``` r
 library(dplyr)
 ```
 
-```
-## 
-## Attaching package: 'dplyr'
-```
+    ## 
+    ## Attaching package: 'dplyr'
 
-```
-## The following objects are masked from 'package:stats':
-## 
-##     filter, lag
-```
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     filter, lag
 
-```
-## The following objects are masked from 'package:base':
-## 
-##     intersect, setdiff, setequal, union
-```
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     intersect, setdiff, setequal, union
 
-```r
+``` r
 library(gridExtra)
 ```
 
-```
-## 
-## Attaching package: 'gridExtra'
-```
+    ## 
+    ## Attaching package: 'gridExtra'
 
-```
-## The following object is masked from 'package:dplyr':
-## 
-##     combine
-```
+    ## The following object is masked from 'package:dplyr':
+    ## 
+    ##     combine
 
-```r
+``` r
 library(rpart)
 library(rpart.plot)
 
@@ -76,36 +55,30 @@ library(rpart.plot)
 iris %>% head
 ```
 
-```
-##   Sepal.Length Sepal.Width Petal.Length Petal.Width Species
-## 1          5.1         3.5          1.4         0.2  setosa
-## 2          4.9         3.0          1.4         0.2  setosa
-## 3          4.7         3.2          1.3         0.2  setosa
-## 4          4.6         3.1          1.5         0.2  setosa
-## 5          5.0         3.6          1.4         0.2  setosa
-## 6          5.4         3.9          1.7         0.4  setosa
-```
+    ##   Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+    ## 1          5.1         3.5          1.4         0.2  setosa
+    ## 2          4.9         3.0          1.4         0.2  setosa
+    ## 3          4.7         3.2          1.3         0.2  setosa
+    ## 4          4.6         3.1          1.5         0.2  setosa
+    ## 5          5.0         3.6          1.4         0.2  setosa
+    ## 6          5.4         3.9          1.7         0.4  setosa
 
-```r
+``` r
 levels(iris$Species)
 ```
 
-```
-## [1] "setosa"     "versicolor" "virginica"
-```
+    ## [1] "setosa"     "versicolor" "virginica"
 
-```r
+``` r
 #our target variable has 3 classes
 table(iris$Species)
 ```
 
-```
-## 
-##     setosa versicolor  virginica 
-##         50         50         50
-```
+    ## 
+    ##     setosa versicolor  virginica 
+    ##         50         50         50
 
-```r
+``` r
 #removing one of the classes of the target variable, virginica, 
 #to make target as a binary variable
 iris1 <- iris[which(iris$Species != "virginica"),]
@@ -125,22 +98,20 @@ tr <- rpart(Species~., training)
 rpart.plot(tr)
 ```
 
-![](DecisionTree_files/figure-html/IntroductionDecisionTree-1.png)<!-- -->
+![](DecisionTree_files/figure-gfm/IntroductionDecisionTree-1.png)<!-- -->
 
-```r
+``` r
 dtree.pred <- predict(tr, type="class")
 
 table(dtree.pred, training$Species)
 ```
 
-```
-##             
-## dtree.pred   setosa versicolor
-##   setosa         35          0
-##   versicolor      0         35
-```
+    ##             
+    ## dtree.pred   setosa versicolor
+    ##   setosa         35          0
+    ##   versicolor      0         35
 
-```r
+``` r
 #with Petal.Length < 2.5, the model predict perfectly in training set
 
 dtree.pred.test <- predict(tr, testing, type="class")
@@ -148,14 +119,12 @@ dtree.pred.test <- predict(tr, testing, type="class")
 table(dtree.pred.test, testing$Species)
 ```
 
-```
-##                
-## dtree.pred.test setosa versicolor
-##      setosa         15          0
-##      versicolor      0         15
-```
+    ##                
+    ## dtree.pred.test setosa versicolor
+    ##      setosa         15          0
+    ##      versicolor      0         15
 
-```r
+``` r
 #with Petal.Length < 2.5, the model predict perfectly in testing set as well
 
 
@@ -168,11 +137,11 @@ t2 <- testing %>%
 grid.arrange(t1, t2) 
 ```
 
-![](DecisionTree_files/figure-html/IntroductionDecisionTree-2.png)<!-- -->
+![](DecisionTree_files/figure-gfm/IntroductionDecisionTree-2.png)<!-- -->
 
+## Algorithms
 
-
-```r
+``` r
 #average function to create adjacent average between predictor indexes
 avg <- function(x1,x2){sum(x1,x2)/2}
 
@@ -318,10 +287,9 @@ impurityOfbest <- function(dat, best.pred, fun){
 }
 ```
 
+## Implementation with Iris Dataset
 
-
-
-```r
+``` r
 #by Entropy metric, we want to find the maximum entropy score
 fun <- "entropy"
 target <- "Species"
@@ -329,23 +297,19 @@ imp.pred <- topTree.predictor(iris1, fun)
 best.impur <- impurityOfbest(iris1, imp.pred, fun)
 ```
 
-```
-## [1] "Best predictor, which is top tree node is Petal.Length with best split is  2.45 by the metric, entropy"
-```
+    ## [1] "Best predictor, which is top tree node is Petal.Length with best split is  2.45 by the metric, entropy"
 
-```r
+``` r
 #Let's see how well this value calculated by the function predicts
 table(iris1[,imp.pred] < best.impur, iris1$Species)
 ```
 
-```
-##        
-##         setosa versicolor
-##   FALSE      0         50
-##   TRUE      50          0
-```
+    ##        
+    ##         setosa versicolor
+    ##   FALSE      0         50
+    ##   TRUE      50          0
 
-```r
+``` r
 #perfectly predicted in training set
 
 
@@ -365,9 +329,9 @@ t2 <- iris1 %>%
 grid.arrange(t1,t2)
 ```
 
-![](DecisionTree_files/figure-html/Prediction-1.png)<!-- -->
+![](DecisionTree_files/figure-gfm/Prediction-1.png)<!-- -->
 
-```r
+``` r
 #perfect split
 
 
@@ -378,27 +342,21 @@ imp.pred <- topTree.predictor(iris1, fun)
 best.impur <- impurityOfbest(iris1, imp.pred,fun)
 ```
 
-```
-## [1] "Best predictor, which is top tree node is Petal.Length with best split is  2.45 by the metric, gini"
-```
+    ## [1] "Best predictor, which is top tree node is Petal.Length with best split is  2.45 by the metric, gini"
 
-```r
+``` r
 #Let's see how well this value predicts
 table(iris1[,imp.pred] < impurityOfbest(iris1, imp.pred, fun), iris1$Species)
 ```
 
-```
-## [1] "Best predictor, which is top tree node is Petal.Length with best split is  2.45 by the metric, gini"
-```
+    ## [1] "Best predictor, which is top tree node is Petal.Length with best split is  2.45 by the metric, gini"
 
-```
-##        
-##         setosa versicolor
-##   FALSE      0         50
-##   TRUE      50          0
-```
+    ##        
+    ##         setosa versicolor
+    ##   FALSE      0         50
+    ##   TRUE      50          0
 
-```r
+``` r
 #perfectly predicted in training set as well
 
 
@@ -418,13 +376,11 @@ t2 <- iris1 %>%
 grid.arrange(t1,t2)
 ```
 
-![](DecisionTree_files/figure-html/Prediction-2.png)<!-- -->
+![](DecisionTree_files/figure-gfm/Prediction-2.png)<!-- -->
 
+## Implementation with random data
 
-
-
-
-```r
+``` r
 #dataset generated by couple of mixed normal distributions
 
 #2 normal distributions
@@ -438,9 +394,9 @@ ggplot(x) +
   geom_density(aes(x2, fill="blue", alpha=0.3))
 ```
 
-![](DecisionTree_files/figure-html/withNewDataset-1.png)<!-- -->
+![](DecisionTree_files/figure-gfm/withNewDataset-1.png)<!-- -->
 
-```r
+``` r
 #combine the 2 random variables generated by 2 normal distribution 
 #that have different mean and the same variance
 x3 <- c(x1,x2)
@@ -461,54 +417,50 @@ dat <- data.frame(x3 = x3, x4 = x4,
 dat %>% ggplot(aes(x=x3)) + geom_density(fill="green", alpha=0.3) + ggtitle("X3")
 ```
 
-![](DecisionTree_files/figure-html/withNewDataset-2.png)<!-- -->
+![](DecisionTree_files/figure-gfm/withNewDataset-2.png)<!-- -->
 
-```r
+``` r
 dat %>% ggplot(aes(x=x4)) + geom_density(fill="purple", alpha=0.3) + ggtitle("X4")
 ```
 
-![](DecisionTree_files/figure-html/withNewDataset-3.png)<!-- -->
+![](DecisionTree_files/figure-gfm/withNewDataset-3.png)<!-- -->
 
-```r
+``` r
 #Graph
 dat %>% ggplot(aes(x=x3, y=x4, col=y)) + 
   geom_jitter() + ggtitle("Original Dataset")
 ```
 
-![](DecisionTree_files/figure-html/withNewDataset-4.png)<!-- -->
+![](DecisionTree_files/figure-gfm/withNewDataset-4.png)<!-- -->
 
-```r
+``` r
 cor(x3,x4)
 ```
 
-```
-## [1] 0.001760897
-```
+    ## [1] 0.001760897
 
-```r
+``` r
 #quick decision tree
 tr <- rpart(y~., dat)
 tr
 ```
 
-```
-## n= 10000 
-## 
-## node), split, n, loss, yval, (yprob)
-##       * denotes terminal node
-## 
-## 1) root 10000 5000 0 (0.50000000 0.50000000)  
-##   2) x3< 3024.085 5004  103 0 (0.97941647 0.02058353) *
-##   3) x3>=3024.085 4996   99 1 (0.01981585 0.98018415) *
-```
+    ## n= 10000 
+    ## 
+    ## node), split, n, loss, yval, (yprob)
+    ##       * denotes terminal node
+    ## 
+    ## 1) root 10000 5000 0 (0.50000000 0.50000000)  
+    ##   2) x3< 3024.085 5004  103 0 (0.97941647 0.02058353) *
+    ##   3) x3>=3024.085 4996   99 1 (0.01981585 0.98018415) *
 
-```r
+``` r
 rpart.plot(tr)
 ```
 
-![](DecisionTree_files/figure-html/withNewDataset-5.png)<!-- -->
+![](DecisionTree_files/figure-gfm/withNewDataset-5.png)<!-- -->
 
-```r
+``` r
 #splitting dataset
 training.idx <- createDataPartition(dat$y, p=0.7,list=FALSE)
 
@@ -519,53 +471,46 @@ training %>% ggplot(aes(x=x3, y=x4, col=y)) +
   geom_point() + ggtitle("Training")
 ```
 
-![](DecisionTree_files/figure-html/withNewDataset-6.png)<!-- -->
+![](DecisionTree_files/figure-gfm/withNewDataset-6.png)<!-- -->
 
-```r
+``` r
 testing %>% ggplot(aes(x=x3, y=x4, col=y)) + 
   geom_point() + ggtitle("Testing")
 ```
 
-![](DecisionTree_files/figure-html/withNewDataset-7.png)<!-- -->
+![](DecisionTree_files/figure-gfm/withNewDataset-7.png)<!-- -->
 
+## Decision Tree with Entropy
 
-
-
-```r
+``` r
 #by Entropy, the maximum entropy score is the best split
 fun <- "entropy"
 target <- "y"
 impurity.fun(training, fun)
 ```
 
-```
-##   var     impurity
-## 1  x3 8.577738e-01
-## 2  x4 6.359676e-06
-```
+    ##   var     impurity
+    ## 1  x3 8.577738e-01
+    ## 2  x4 6.359676e-06
 
-```r
+``` r
 imp.pred <- topTree.predictor(training, fun)
 best.impur <- impurityOfbest(training, imp.pred, fun)
 ```
 
-```
-## [1] "Best predictor, which is top tree node is x3 with best split is  3031.91103120604 by the metric, entropy"
-```
+    ## [1] "Best predictor, which is top tree node is x3 with best split is  3031.91103120604 by the metric, entropy"
 
-```r
+``` r
 #Let's see how well this value predicts
 table(training[,imp.pred] < best.impur, training$y)
 ```
 
-```
-##        
-##            0    1
-##   FALSE   68 3427
-##   TRUE  3432   73
-```
+    ##        
+    ##            0    1
+    ##   FALSE   68 3427
+    ##   TRUE  3432   73
 
-```r
+``` r
 #quite well predicted in training set
 
 pred.by<- as.factor(ifelse(training[,imp.pred] < best.impur, "setosa","versiclor"))
@@ -584,9 +529,9 @@ t2 <- training %>%
 grid.arrange(t1,t2)
 ```
 
-![](DecisionTree_files/figure-html/Entropy-1.png)<!-- -->
+![](DecisionTree_files/figure-gfm/Entropy-1.png)<!-- -->
 
-```r
+``` r
 #in the Testset, which is we predict unkown dataset
 pred.by<- as.factor(ifelse(testing[,imp.pred] < best.impur, "setosa","versiclor"))
 t1 <- testing %>% 
@@ -603,13 +548,11 @@ t2 <- testing %>%
 grid.arrange(t1,t2)
 ```
 
-![](DecisionTree_files/figure-html/Entropy-2.png)<!-- -->
+![](DecisionTree_files/figure-gfm/Entropy-2.png)<!-- -->
 
+## Decision Tree with Gini
 
-
-
-
-```r
+``` r
 #by Gini, the least gini index score is the best split
 fun <- "gini"
 target <- "y"
@@ -617,23 +560,19 @@ imp.pred <- topTree.predictor(training, fun)
 best.impur <- impurityOfbest(training, imp.pred, fun)
 ```
 
-```
-## [1] "Best predictor, which is top tree node is x3 with best split is  3031.91103120604 by the metric, gini"
-```
+    ## [1] "Best predictor, which is top tree node is x3 with best split is  3031.91103120604 by the metric, gini"
 
-```r
+``` r
 #Let's see how well this value predicts
 table(training[,imp.pred] < best.impur, training$y)
 ```
 
-```
-##        
-##            0    1
-##   FALSE   68 3427
-##   TRUE  3432   73
-```
+    ##        
+    ##            0    1
+    ##   FALSE   68 3427
+    ##   TRUE  3432   73
 
-```r
+``` r
 #quite well predicted in training set
 
 pred.by<- as.factor(ifelse(training[,imp.pred] < best.impur, "setosa","versiclor"))
@@ -652,9 +591,9 @@ t2 <- training %>%
 grid.arrange(t1,t2)
 ```
 
-![](DecisionTree_files/figure-html/Gini-1.png)<!-- -->
+![](DecisionTree_files/figure-gfm/Gini-1.png)<!-- -->
 
-```r
+``` r
 #in the Testset, which is we predict unkown dataset
 pred.by<- as.factor(ifelse(testing[,imp.pred] < best.impur, "setosa","versiclor"))
 t1 <- testing %>% 
@@ -671,4 +610,4 @@ t2 <- testing %>%
 grid.arrange(t1,t2)
 ```
 
-![](DecisionTree_files/figure-html/Gini-2.png)<!-- -->
+![](DecisionTree_files/figure-gfm/Gini-2.png)<!-- -->

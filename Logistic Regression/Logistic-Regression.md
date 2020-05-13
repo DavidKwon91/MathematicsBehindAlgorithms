@@ -2,6 +2,21 @@ Logistic Regression
 ================
 David Kwon
 
+  - [Logistic Regression](#logistic-regression)
+      - [Binomial Distribution](#binomial-distribution)
+      - [Sigmoid function and Log Odds](#sigmoid-function-and-log-odds)
+      - [Likelihood Function](#likelihood-function)
+      - [Newton-Raphson Method](#newton-raphson-method)
+      - [Linear Regression with Newton-Raphson
+        method](#linear-regression-with-newton-raphson-method)
+      - [Logistic Regression with Newton-Raphson
+        method](#logistic-regression-with-newton-raphson-method)
+  - [Implementation with R code](#implementation-with-r-code)
+      - [Algorithms](#algorithms)
+      - [Implementation](#implementation)
+      - [Implementation with Titanic](#implementation-with-titanic)
+      - [Implementation with Iris](#implementation-with-iris)
+
 # Logistic Regression
 
 ## Binomial Distribution
@@ -217,6 +232,8 @@ Then,
 y))](https://latex.codecogs.com/png.latex?%5Ctheta_%7Bk%2B1%7D%20%3D%20%5Ctheta_k%20-%20H_k%5E%7B-1%7Dg_k%20%5C%5C%20%3D%20%5Ctheta_k%20-%20%28X%5ETWX%29%5E%7B-1%7D%28X%5ET%28%5Ctheta_k%28X%29%20-%20y%29%29%20%5C%5C%20%5Ctherefore%20%5Chat%20%5Cbeta%20%3D%20%5Ctheta_k%20-%20%28X%5ETWX%29%5E%7B-1%7D%28X%5ET%28%5Ctheta_k%28X%29%20-%20y%29%29
 "\\theta_{k+1} = \\theta_k - H_k^{-1}g_k \\\\ = \\theta_k - (X^TWX)^{-1}(X^T(\\theta_k(X) - y)) \\\\ \\therefore \\hat \\beta = \\theta_k - (X^TWX)^{-1}(X^T(\\theta_k(X) - y))")  
 
+# Implementation with R code
+
 ``` r
 library(numDeriv)
 library(MASS)
@@ -224,6 +241,8 @@ library(dplyr)
 library(caret)
 library(titanic)
 ```
+
+## Algorithms
 
 ``` r
 #Sigmoid function - make cost function derivative
@@ -295,6 +314,8 @@ newton.method.logisticReg <- function(X, y, theta, num_iter,tol){
 }
 ```
 
+## Implementation
+
 ``` r
 set.seed(11)
 
@@ -311,18 +332,18 @@ result1 <- newton.method.logisticReg(X,y,theta, 20,1e-5)
 result1
 ```
 
-    ##       H.diag       theta  se.theta    z.value    p.value lower.conf
-    ## 1 0.04334712  0.16432469 0.2081997  0.7892647 0.42995730 -0.2437467
-    ## 2 0.05126367 -0.08414919 0.2264148 -0.3716594 0.71014649 -0.5279222
-    ## 3 0.04397323  0.08311151 0.2096979  0.3963392 0.69185485 -0.3278965
-    ## 4 0.04780654 -0.37630974 0.2186471 -1.7210829 0.08523578 -0.8048580
-    ## 5 0.04223175  0.03286426 0.2055037  0.1599206 0.87294364 -0.3699229
-    ##   upper.conf    loglik      AIC iter
-    ## 1 0.57239611 -67.14336 144.2867    3
-    ## 2 0.35962386 -67.14336 144.2867    3
-    ## 3 0.49411947 -67.14336 144.2867    3
-    ## 4 0.05223852 -67.14336 144.2867    3
-    ## 5 0.43565144 -67.14336 144.2867    3
+    ##       H.diag       theta  se.theta    z.value    p.value lower.conf upper.conf
+    ## 1 0.04334712  0.16432469 0.2081997  0.7892647 0.42995730 -0.2437467 0.57239611
+    ## 2 0.05126367 -0.08414919 0.2264148 -0.3716594 0.71014649 -0.5279222 0.35962386
+    ## 3 0.04397323  0.08311151 0.2096979  0.3963392 0.69185485 -0.3278965 0.49411947
+    ## 4 0.04780654 -0.37630974 0.2186471 -1.7210829 0.08523578 -0.8048580 0.05223852
+    ## 5 0.04223175  0.03286426 0.2055037  0.1599206 0.87294364 -0.3699229 0.43565144
+    ##      loglik      AIC iter
+    ## 1 -67.14336 144.2867    3
+    ## 2 -67.14336 144.2867    3
+    ## 3 -67.14336 144.2867    3
+    ## 4 -67.14336 144.2867    3
+    ## 5 -67.14336 144.2867    3
 
 ``` r
 #fitting by glm syntax built in R
@@ -491,6 +512,8 @@ summar <- summary(glm1)
 
     ## [1] 0.02427594
 
+## Implementation with Titanic
+
 ``` r
 train<-titanic_train
 
@@ -501,13 +524,16 @@ train <- train %>%
 ```
 
     ## Warning: funs() is soft deprecated as of dplyr 0.8.0
-    ## please use list() instead
+    ## Please use a list of either functions or lambdas: 
     ## 
-    ##   # Before:
-    ##   funs(name = f(.))
+    ##   # Simple named list: 
+    ##   list(mean = mean, median = median)
     ## 
-    ##   # After: 
-    ##   list(name = ~ f(.))
+    ##   # Auto named with `tibble::lst()`: 
+    ##   tibble::lst(mean, median)
+    ## 
+    ##   # Using lambdas
+    ##   list(~ mean(., trim = .2), ~ median(., na.rm = TRUE))
     ## This warning is displayed once per session.
 
 ``` r
@@ -722,6 +748,8 @@ summar <- summary(glm1)
 
     ## [1] 0.09407787
 
+## Implementation with Iris
+
 ``` r
 #removing one of the classes of the target variable, virginica, 
 #to make target as a binary variable
@@ -761,16 +789,16 @@ result1 <- newton.method.logisticReg(X, y, theta,100, 1e-5)
 result1
 ```
 
-    ##       H.diag      theta  se.theta   z.value     p.value  lower.conf
-    ## 1 125.206057 -26.977004 11.189551 -2.410910 0.015912764 -48.9085240
-    ## 2   1.640926   1.647647  1.280986  1.286233 0.198361727  -0.8630863
-    ## 3   7.123311  -5.475747  2.668953 -2.051646 0.040204093 -10.7068949
-    ## 4  39.525382  19.628029  6.286922  3.122041 0.001796017   7.3056624
-    ##   upper.conf    loglik     AIC iter
-    ## 1 -5.0454831 -9.709402 27.4188    9
-    ## 2  4.1583805 -9.709402 27.4188    9
-    ## 3 -0.2445985 -9.709402 27.4188    9
-    ## 4 31.9503947 -9.709402 27.4188    9
+    ##       H.diag      theta  se.theta   z.value     p.value  lower.conf upper.conf
+    ## 1 125.206057 -26.977004 11.189551 -2.410910 0.015912764 -48.9085240 -5.0454831
+    ## 2   1.640926   1.647647  1.280986  1.286233 0.198361727  -0.8630863  4.1583805
+    ## 3   7.123311  -5.475747  2.668953 -2.051646 0.040204093 -10.7068949 -0.2445985
+    ## 4  39.525382  19.628029  6.286922  3.122041 0.001796017   7.3056624 31.9503947
+    ##      loglik     AIC iter
+    ## 1 -9.709402 27.4188    9
+    ## 2 -9.709402 27.4188    9
+    ## 3 -9.709402 27.4188    9
+    ## 4 -9.709402 27.4188    9
 
 ``` r
 glm1 <- glm(y~x, family=binomial)

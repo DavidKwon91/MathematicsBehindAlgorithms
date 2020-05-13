@@ -119,6 +119,10 @@ Then,
 $$\theta_{k+1} = \theta_k - H_k^{-1}g_k \\ = \theta_k - (X^TWX)^{-1}(X^T(\theta_k(X) - y)) \\ \therefore \hat \beta = \theta_k - (X^TWX)^{-1}(X^T(\theta_k(X) - y))$$
 
 
+
+Implementation with R code
+======================
+
 ```{r, message=FALSE}
 library(numDeriv)
 library(MASS)
@@ -126,6 +130,10 @@ library(dplyr)
 library(caret)
 library(titanic)
 ```
+
+
+Algorithms
+----------------
 
 
 ```{r functions}
@@ -200,6 +208,9 @@ newton.method.logisticReg <- function(X, y, theta, num_iter,tol){
 ```
 
 
+Implementation
+----------------
+
 ```{r randomData}
 set.seed(11)
 
@@ -255,7 +266,8 @@ summar <- summary(glm1)
 
 ```
 
-
+Implementation with Titanic
+-----------------
 
 ```{r Titanic}
 train<-titanic_train
@@ -337,7 +349,8 @@ summar <- summary(glm1)
 
 ```
 
-
+Implementation with Iris
+---------------------
 
 ```{r Iris}
 

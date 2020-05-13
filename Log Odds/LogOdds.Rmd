@@ -2,13 +2,19 @@
 title: "Log Odds"
 author: "David (Yongbock) Kwon"
 output:
-  html_document:
-    keep_md: true
-  html_notebook: default
-  pdf_document: default
+  github_document:
+    pandoc_args: --webtex
+    toc: true
+    toc_depth: 2
 editor_options:
   chunk_output_type: console
 ---
+
+
+Log Odds (Logit)
+===================
+
+
 
 About Log odds.. 
 --------------------------
@@ -95,8 +101,9 @@ With Titanic Dataset
 #Let's see how this works for our predictors
 ##Survived ~ Sex logodds
 
-train <- read.csv("~/Desktop/Practice/Kaggle/Titanic/Datasets/train.csv", stringsAsFactors = TRUE, na.strings = "")
-test <- read.csv("~/Desktop/Practice/Kaggle/Titanic/Datasets/train.csv", stringsAsFactors = TRUE, na.strings = "")
+getwd()
+train <- read.csv("Datasets/train.csv", stringsAsFactors = TRUE, na.strings = "")
+test <- read.csv("Datasets/train.csv", stringsAsFactors = TRUE, na.strings = "")
 
 test$Survived <- NA
 dat <- rbind(train,test)

@@ -18,6 +18,7 @@ Linear Regression
       - [p value for F Statistics](#p-value-for-f-statistics)
   - [Assumptions of Linear
     Regression](#assumptions-of-linear-regression)
+      - [1. Outliers](#outliers)
       - [2. Normality of Residuals](#normality-of-residuals)
       - [3. Multicollinearity](#multicollinearity)
       - [4. Heteroscedasticity](#heteroscedasticity)
@@ -867,17 +868,7 @@ pf(sum.lm1$fstatistic[1],sum.lm1$fstatistic[2],sum.lm1$fstatistic[3],lower.tail=
 
 # Assumptions of Linear Regression
 
-1.  Outliers
-
-2.  Normality of Residuals
-
-3.  Multicollinearity
-
-4.  Homoscedasticity (Non-Constant Variance of Residuals)
-
-5.  ## Outliers
-
-<!-- end list -->
+## 1\. Outliers
 
 ``` r
 cooks <- cooks.distance(lm1)
