@@ -1,0 +1,425 @@
+---
+title: "Logistic Regression"
+author: "David Kwon"
+output:
+  github_document:
+    pandoc_args: --webtex
+    toc: true
+    toc_depth: 2
+editor_options:
+  chunk_output_type: console
+---
+
+
+Logistic Regression
+==================
+
+Binomial Distribution
+------------
+
+Let $Y$ = number of successes in $m$ trials of a binomial process. Then Y is said to have a binomial distribution with parameters $m$ and $\theta$. 
+
+$$Y \sim Bin(m, \theta)$$
+The probability that $Y$ takes the integer value $j$ ($j = 0, 1, ..., m$) is given by 
+
+$$P(Y=j) = \binom{m}{j} \theta^j (1-\theta)^{m-j}$$
+Then, 
+
+let $y_i$ = number of successes in $m_i$ trials of a binomial process where $i = 1,...,n$. 
+
+Then, 
+
+$$(Y = y_i|X = x_i) \sim Bin(m_i, \theta(x_i))$$
+
+Sigmoid function is chosen to differentiate the cost function. 
+
+Sigmoid function and Log Odds
+-----------
+
+$$\theta(x) = \frac{e^{\beta_0 + \beta_1x}}{1 + e^{\beta_0 + \beta_1x}} = \frac{1}{1 + e^{-(\beta_0 + \beta_1x)}}$$
+Here, the $\theta(x)$ is the probability of success.
+Solving the equation for $\beta_0 + \beta_1x$, 
+
+$$\beta_0 + \beta_1x = log(\frac{\theta(x)}{1-\theta(x)}) $$ 
+Here, the $log(\frac{\theta(x)}{1-\theta(x)})$ is known as odds, which can be described as "odds in favor of success"
+
+
+Likelihood Function
+-------------
+Let $\theta(X) = \frac{1}{1+e^{-(X\beta)}}$, then the likelihood function is the function of the unkown probability of success $\theta(X)$ given by..
+
+
+
+$$L = \prod_{i=1}^{n} P(Y_i = y_i|X = x_i)$$
+
+$$ = \prod_{i=1}^{n} \binom{m_i}{y_i} \theta(x_i)^{y_i} (1-\theta(x_i))^{m_i - y_i} $$
+
+
+
+Then, the log likelihood function is given by
+
+$$log(L) = \sum_{i=1}^{n}[log(\binom{m_i}{y_i}) + log(\theta(x_i)^{y_i}) + log((1-\theta(x_i))^{m_i - y_i})] \\\ = \sum_{i=1}^{n}[y_ilog(\theta(x_i)) + (m_i-y_i)log(1-\theta(x_i)) + log(\binom{m_i}{y_i})] $$
+
+The all $m_i$ equal to 1 in the binary data. 
+Therefore, for binary response variable, 
+
+$$log(L) = \sum_{i=1}^{n}[y_ilog(\theta(x_i)) + (1-y_i)log(1-\theta(x_i))] $$
+The constant, $log(\binom{m_i}{y_i})$ is excluded here, since it won't affect in optimization. 
+
+Then, the cost function is the mean of the Log Likelihood function. 
+
+$$J = \frac{1}{n}\sum_{i=1}^{n}[y_ilog(\theta(x_i)) + (1-y_i)log(1-\theta(x_i))] $$
+
+Newton-Raphson Method
+--------------
+
+It's often called as Newton's method, and the form is given by
+
+$$\theta_{k+1} = \theta_k - H_k^{-1}g_k$$
+where $H_k$ is the Hessian matrix and $g_k$ is gradient matrix. 
+
+It comes from the Taylor approximation of $f(\theta)$ around $\theta_k$. 
+
+$$f_{quad}(\theta) =  f(\theta_k) + g_k^{T}(\theta - \theta_k) + \frac{1}{2}(\theta - \theta_k)^{T}H_k(\theta - \theta_k)$$ 
+
+Setting the derivative of the function for $\theta$ 0. 
+$$ \\ \frac{\partial f_{quad}(\theta)}{\partial \theta} = 0 + g_k + H_k(\theta - \theta_k) = 0 \\ -g_k = H_k(\theta-\theta_k) \\ = H_k\theta - H_k\theta_k \\ H_k\theta = H_k\theta_k - g_k \\ \therefore \theta_{k+1} = \theta_k - H_k^{-1}g_k $$
+
+Linear Regression with Newton-Raphson method
+-----------
+
+In linear regression, the $\hat y$ is given by $X\theta$, and therefore, least squares, which is the cost function, is given by ..
+$$f(\theta) = f(\theta; X, y) = (y-X\theta)^{T}(y-X\theta)$$
+
+$$= y^Ty - y^TX\theta - \theta^TX^Ty + \theta^TX^TX\theta \\  = y^Ty - 2\theta^TX^Ty + \theta^TX^TX\theta$$
+Then, the gradient is..
+
+$$g = \partial f(\theta) = -2X^T y + 2X^T X \theta$$
+
+The Hessian is..
+$$H = \partial^2f(\theta) = 2X^TX $$
+
+The Newton's method for Linear Regression is..
+
+$$\therefore \theta_{k+1} = \theta_k - H_k^{-1}g_k \\ = \theta_k - (2X^TX)^{-1}(-2X^Ty + 2X^TX\theta_k) \\ = \theta_k + (X^TX)^{-1}(X^Ty) - (X^TX)^{-1}X^TX\theta_k \\ \therefore \hat \beta= (X^TX)^{-1}X^Ty  $$
+
+
+Logistic Regression with Newton-Raphson method
+-----------
+the gradient is 
+
+$$X^T(\theta(X) - y) $$
+the Hessian is
+
+$$ X^TWX $$
+where the $W$ is the diagonal elements of the matrix, $\theta_k(1-\theta_k)$
+
+Then, 
+
+$$\theta_{k+1} = \theta_k - H_k^{-1}g_k \\ = \theta_k - (X^TWX)^{-1}(X^T(\theta_k(X) - y)) \\ \therefore \hat \beta = \theta_k - (X^TWX)^{-1}(X^T(\theta_k(X) - y))$$
+
+
+```{r, message=FALSE}
+library(numDeriv)
+library(MASS)
+library(dplyr)
+library(caret)
+library(titanic)
+```
+
+
+```{r functions}
+#Sigmoid function - make cost function derivative
+sigmoid <- function(lo){
+  sig <- 1/(1+exp(-lo))
+  return(sig)
+}
+
+#cost function - mean of negative log likelihood function
+LL.cost <- function(X,Y,theta){
+  
+  J <- (-1/n)*sum(Y*log(sigmoid(X%*%theta)) + (1-Y)*log(1-sigmoid(X%*%theta)))
+  
+  return(J)
+}
+
+#first derivatives
+gradient.func <- function(X,Y,theta){
+  G <- (1/n)*(t(X)%*%(sigmoid(X%*%theta) - Y))
+  return(G)
+}
+
+#second derivatives
+#not use this function
+hessian.func <- function(X,Y,theta){
+  H <- (1/n)*((t(X)*diag(sigmoid(X%*%theta)*(1-sigmoid(X%*%theta))))%*%X)
+  return(H)
+}
+
+#Logistic regression with Newton Raphson method
+newton.method.logisticReg <- function(X, y, theta, num_iter,tol){
+  
+  summar <- data.frame(H.diag = rep(0,p+1), theta = rep(0,p+1), se.theta=rep(0,p+1))
+  p <- dim(x)[2]
+  for(i in 1:num_iter){
+    grad <- gradient.func(X,y,theta)
+    H <- hessian(LL.cost, X = X, Y = y, theta, method = "complex")
+    #"complex" method = calculated as the Jacobian of the gradient
+    
+    H.diag <- diag(ginv(H))/(n)
+    se.theta <- sqrt(abs(H.diag))
+    newton.weight <- ginv(H)%*%grad
+    theta <- theta - newton.weight
+    
+    summar$theta <- theta
+    
+    #new hessian with updated theta
+    H.new <- hessian(LL.cost, X = X, Y = y, theta, method = "complex")
+    #"complex" method = calculated as the Jacobian of the gradient
+    
+    H.diag <- diag(ginv(H.new))/(n)
+    se.theta <- sqrt(abs(H.diag))
+    
+    summar$H.diag <- H.diag
+    summar$se.theta <- se.theta
+    summar$z.value <- summar$theta/summar$se.theta
+    summar$p.value <- pnorm(-abs(summar$theta)/summar$se.theta)*2
+    summar$lower.conf <- summar$theta - 1.96 * summar$se.theta
+    summar$upper.conf <- summar$theta + 1.96 * summar$se.theta
+    summar$loglik <- -LL.cost(X,y,summar$theta)*n
+    summar$AIC <- -2*summar$loglik + 2*(p+1)
+    
+    #stop if weights are less than tolerance
+    if(any(abs(newton.weight)<tol)){
+      summar$iter <- i
+      return(summar)
+    }
+  }
+}
+
+```
+
+
+```{r randomData}
+set.seed(11)
+
+x <- matrix(rnorm(400), ncol = 4) #random predictors
+y <- round(runif(100, 0, 1)) # create a binary outcome
+n <- length(x)
+X <- cbind(rep(1, 100), x)
+p <- dim(x)[2] #intercept term (Beta0) - # of predictors
+theta<-rep(0, 5)
+
+data1 <- data.frame(cbind(y,x))
+
+result1 <- newton.method.logisticReg(X,y,theta, 20,1e-5)
+result1
+
+#fitting by glm syntax built in R
+glm1 <- glm(y~., data= data1, family = "binomial")
+
+summary(glm1)
+summary(glm1)$coefficients
+
+#test 
+summary(glm1)$coefficients[,1] == result1$theta
+abs(summary(glm1)$coefficients[,1] - result1$theta) < 1e-5
+abs(summary(glm1)$coefficients[,2] - result1$se.theta) < 1e-5
+abs(summary(glm1)$coefficients[,3] - result1$z.value) < 1e-5
+abs(summary(glm1)$coefficients[,4] - result1$p.value) < 1e-5
+abs(confint.default(glm1) - cbind(result1$lower.conf, result1$upper.conf)) < 1e-5
+abs(logLik(glm1) - result1$loglik) < 1e-5
+abs(AIC(glm1) - result1$AIC) < 1e-5
+
+#fitting - prediction
+pred <- as.vector(sigmoid(X%*%result1$theta))
+pred.hands <- ifelse(pred > .5, 1, 0)
+
+pred1 <- as.vector(predict(glm1, data1, type="response"))
+pred1.hands <- ifelse(pred1 > .5, 1, 0)
+
+#same results
+identical(pred.hands, pred1.hands)
+
+#Accuracy
+mean(pred.hands == y)
+mean(pred1.hands == y)
+
+summar <- summary(glm1)
+#p-value for deviance to test the hypothesis if the model is appropriate
+1-pchisq(summar$deviance, df = summar$df.residual)
+1-pchisq(summar$null.deviance - summar$deviance, df = summar$df.null - summar$df.residual)
+
+#pseudo R^2 for logistic regression
+1-summar$deviance/summar$null.deviance
+
+```
+
+
+
+```{r Titanic}
+train<-titanic_train
+
+train <- train %>%
+  select(subset= -c(PassengerId, Pclass, Name, Sex, Ticket, Cabin, Embarked)) %>%
+  mutate_all(funs(ifelse(is.na(.), mean(., na.rm=TRUE), .))) %>%
+  mutate_if(is.integer, as.numeric)
+
+train.indx <- createDataPartition(train$Survived, p=0.7, list=FALSE)
+
+training <- train[train.indx,]
+valid <- train[-train.indx,]
+
+x <- as.matrix(training %>% select(-Survived))
+y <- training$Survived %>% as.numeric
+n <- nrow(x)
+X <- cbind(rep(1, nrow(x)), x)
+p <- dim(x)[2]
+theta<-rep(0, ncol(X))
+data1 <- data.frame(cbind(y,x))
+
+result1 <- newton.method.logisticReg(X, y, theta,1000, 1e-15)
+result1
+
+glm1 <- glm(y~x, family = binomial)
+summary(glm1)
+
+#test
+summary(glm1)$coefficients[,1] == result1$theta
+abs(summary(glm1)$coefficients[,1] - result1$theta) < 1e-5
+abs(summary(glm1)$coefficients[,2] - result1$se.theta) < 1e-5
+abs(summary(glm1)$coefficients[,3] - result1$z.value) < 1e-5
+abs(summary(glm1)$coefficients[,4] - result1$p.value) < 1e-5
+abs(confint.default(glm1) - cbind(result1$lower.conf, result1$upper.conf)) < 1e-5
+abs(logLik(glm1) - result1$loglik) < 1e-5
+abs(AIC(glm1) - result1$AIC) < 1e-5
+
+#fitting
+pred <- as.vector(sigmoid(X%*%result1$theta))
+pred.hands <- ifelse(pred > .5, 1, 0)
+
+pred1 <- as.vector(predict(glm1, data1, type="response"))
+pred1.hands <- ifelse(pred1 > .5, 1, 0)
+
+identical(pred.hands, pred1.hands)
+
+#Training Accuracy
+mean(pred.hands == y)
+mean(pred1.hands == y)
+
+
+#Validation Accuracy
+x <- as.matrix(valid %>% select(-Survived))
+y <- valid$Survived %>% as.numeric
+n <- nrow(x)
+X <- cbind(rep(1, nrow(x)), x)
+p <- dim(x)[2]
+
+data1 <- data.frame(cbind(y,x))
+
+pred <- as.vector(sigmoid(X%*%result1$theta))
+pred.hands <- ifelse(pred > .5, 1, 0)
+
+pred1 <- as.vector(predict(glm1, data1, type="response"))
+pred1.hands <- ifelse(pred1 > .5, 1, 0)
+
+#Validation Accuracy
+mean(pred.hands == y)
+mean(pred1.hands == y)
+
+summar <- summary(glm1)
+#p-value for deviance to test the hypothesis if the model is appropriate
+1-pchisq(summar$deviance, df = summar$df.residual)
+1-pchisq(summar$null.deviance - summar$deviance, df = summar$df.null - summar$df.residual)
+
+#R^2
+1-summar$deviance/summar$null.deviance
+
+```
+
+
+
+```{r Iris}
+
+#removing one of the classes of the target variable, virginica, 
+#to make target as a binary variable
+iris1 <- iris %>% 
+  filter(!Species %in% c("setosa")) %>%
+  mutate(Species = as.numeric(Species)-2)
+
+iris1 %>%  cor
+
+iris1 <- iris1 %>%
+  select(-Petal.Length)
+
+train.indx <- createDataPartition(iris1$Species, p=0.8, list=FALSE)
+
+training <- iris1[train.indx,]
+valid <- iris1[-train.indx,]
+
+
+x <- as.matrix(training %>% select(-Species))
+y <- training$Species
+n <- nrow(x)
+X <- cbind(rep(1, nrow(x)), x)
+p <- dim(x)[2]
+theta<-rep(0, ncol(X))
+data1 <- data.frame(cbind(y,x))
+
+result1 <- newton.method.logisticReg(X, y, theta,100, 1e-5)
+result1
+
+glm1 <- glm(y~x, family=binomial)
+summary(glm1)$coefficient
+summary(glm1)
+confint.default(glm1)
+logLik(glm1)
+
+
+
+pred <- as.vector(sigmoid(X%*%result1$theta))
+pred.hands <- ifelse(pred > .5, 1, 0)
+
+pred1 <- as.vector(predict(glm1, data1, type="response"))
+pred1.hands <- ifelse(pred1 > .5, 1, 0)
+
+identical(pred.hands, pred1.hands)
+
+#Training Accuracy
+mean(pred.hands == y)
+mean(pred1.hands == y)
+
+
+
+x <- as.matrix(valid %>% select(-Species))
+y <- valid$Species
+n <- nrow(x)
+X <- cbind(rep(1, nrow(x)), x)
+p <- dim(x)[2]
+
+data1 <- data.frame(cbind(y,x))
+
+
+pred <- as.vector(sigmoid(X%*%result1$theta))
+pred.hands <- ifelse(pred > .5, 1, 0)
+
+pred1 <- as.vector(predict(glm1, data1, type="response"))
+pred1.hands <- ifelse(pred1 > .5, 1, 0)
+
+identical(pred.hands, pred1.hands)
+
+#Training Accuracy
+mean(pred.hands == y)
+mean(pred1.hands == y)
+
+summar <- summary(glm1)
+#p-value for deviance to test the hypothesis if the model is appropriate
+1-pchisq(summar$deviance, df = summar$df.residual)
+1-pchisq(summar$null.deviance - summar$deviance, df = summar$df.null - summar$df.residual)
+
+#R^2
+1-summar$deviance/summar$null.deviance
+
+```
+
+

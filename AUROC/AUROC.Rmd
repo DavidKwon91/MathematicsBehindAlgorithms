@@ -113,7 +113,7 @@ spec <- function(tp.dat){
 
 #Syntax built in R
 confusionMatrix(as.factor(pred),as.factor(target), positive="Fraud")
-F1_Score(target, pred, positive = "Fraud")
+MLmetrics::F1_Score(target, pred, positive = "Fraud")
 
 #Sensitivity and Specificity by my own functions
 recall(tp.dat) # = Sensitivity = TPR
@@ -281,26 +281,26 @@ dtree.pred1 %>% head
 
 
 #roc built in R
-pred.dtree <- prediction(dtree.pred1, test$diabetes, label.ordering = c("neg","pos"))
+pred.dtree <- ROCR::prediction(dtree.pred1, test$diabetes, label.ordering = c("neg","pos"))
 
 #ROC curve
-perf <- performance(pred.dtree, "tpr","fpr")
+perf <- ROCR::performance(pred.dtree, "tpr","fpr")
 plot(perf)
 
 #AUC value
-perf <- performance(pred.dtree, "auc")
+perf <- ROCR::performance(pred.dtree, "auc")
 perf@y.values[[1]]
 
 #Sensitivity vs Specificity
-perf <- performance(pred.dtree, "sens","spec")
+perf <- ROCR::performance(pred.dtree, "sens","spec")
 plot(perf)
 
 #Precision vs Recall
-perf <- performance(pred.dtree, "prec", "rec")
+perf <- ROCR::performance(pred.dtree, "prec", "rec")
 plot(perf)
 
 #Another way
-roc.curve.dtree <- roc(test$diabetes, dtree.pred1, levels=c("pos","neg"), positive="pos")
+roc.curve.dtree <- pROC::roc(test$diabetes, dtree.pred1, levels=c("pos","neg"), positive="pos")
 plot(roc.curve.dtree)
 auc(roc.curve.dtree)
 roc.curve.dtree %>% coords("best", transpose=FALSE)
@@ -324,6 +324,7 @@ confusionMatrix(as.factor(ifelse(dtree.pred1 >= threshold.dtree, "pos", "neg")),
 tp.dat.dtree <- tptnfpfn(test$diabetes,ifelse(dtree.pred1 >= threshold.dtree, "pos", "neg"))
 tp.dat.dtree
 
+#at threshold
 precision(tp.dat.dtree)
 recall(tp.dat.dtree)
 spec(tp.dat.dtree)
