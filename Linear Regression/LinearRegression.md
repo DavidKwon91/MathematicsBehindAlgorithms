@@ -1,6 +1,27 @@
 Linear Regression
 ================
-Yongbock (David) Kwon
+
+  - [Investigating Linear Regression](#investigating-linear-regression)
+      - [Coefficients - Beta Hat](#coefficients---beta-hat)
+      - [Residual Standard Error](#residual-standard-error)
+      - [Standard Error for
+        coefficients](#standard-error-for-coefficients)
+      - [T-value](#t-value)
+      - [p-value](#p-value)
+      - [Confidence Interval for
+        Coefficients](#confidence-interval-for-coefficients)
+      - [R squared - Explained variability of response
+        variable](#r-squared---explained-variability-of-response-variable)
+      - [Adjusted R squared - for multiple
+        variables](#adjusted-r-squared---for-multiple-variables)
+      - [F Statistics](#f-statistics)
+      - [p value for F Statistics](#p-value-for-f-statistics)
+  - [Assumptions of Linear
+    Regression](#assumptions-of-linear-regression)
+      - [2. Normality of Residuals](#normality-of-residuals)
+      - [3. Multicollinearity](#multicollinearity)
+      - [4. Heteroscedasticity](#heteroscedasticity)
+      - [Transformation](#transformation)
 
 ``` r
 library(dplyr)
@@ -366,28 +387,22 @@ as.matrix(predict(lm1))
 mtcars1$mpg - predict(lm1)
 ```
 
-    ##           Mazda RX4       Mazda RX4 Wag          Datsun 710 
-    ##         -1.57148162         -0.81167228         -2.25937258 
-    ##      Hornet 4 Drive   Hornet Sportabout             Valiant 
-    ##          0.32858059          0.47278581         -1.56647443 
-    ##          Duster 360           Merc 240D            Merc 230 
-    ##         -1.28080782          1.61268526         -1.75161045 
-    ##            Merc 280           Merc 280C          Merc 450SE 
-    ##         -0.79209083         -2.57618077          1.69086228 
-    ##          Merc 450SL         Merc 450SLC  Cadillac Fleetwood 
-    ##          0.97177457         -1.16501219         -0.41931533 
-    ## Lincoln Continental   Chrysler Imperial            Fiat 128 
-    ##          0.61569807          4.84505296          5.49956767 
-    ##         Honda Civic      Toyota Corolla       Toyota Corona 
-    ##         -0.43340728          4.88707571         -3.54044580 
-    ##    Dodge Challenger         AMC Javelin          Camaro Z28 
-    ##         -1.64290715         -3.25500565         -1.78246913 
-    ##    Pontiac Firebird           Fiat X1-9       Porsche 914-2 
-    ##          2.52199137         -0.40031087          0.05632667 
-    ##        Lotus Europa      Ford Pantera L        Ferrari Dino 
-    ##          3.58192825         -2.24327970          0.43497663 
-    ##       Maserati Bora          Volvo 142E 
-    ##          1.91609010         -1.94355207
+    ##           Mazda RX4       Mazda RX4 Wag          Datsun 710      Hornet 4 Drive 
+    ##         -1.57148162         -0.81167228         -2.25937258          0.32858059 
+    ##   Hornet Sportabout             Valiant          Duster 360           Merc 240D 
+    ##          0.47278581         -1.56647443         -1.28080782          1.61268526 
+    ##            Merc 230            Merc 280           Merc 280C          Merc 450SE 
+    ##         -1.75161045         -0.79209083         -2.57618077          1.69086228 
+    ##          Merc 450SL         Merc 450SLC  Cadillac Fleetwood Lincoln Continental 
+    ##          0.97177457         -1.16501219         -0.41931533          0.61569807 
+    ##   Chrysler Imperial            Fiat 128         Honda Civic      Toyota Corolla 
+    ##          4.84505296          5.49956767         -0.43340728          4.88707571 
+    ##       Toyota Corona    Dodge Challenger         AMC Javelin          Camaro Z28 
+    ##         -3.54044580         -1.64290715         -3.25500565         -1.78246913 
+    ##    Pontiac Firebird           Fiat X1-9       Porsche 914-2        Lotus Europa 
+    ##          2.52199137         -0.40031087          0.05632667          3.58192825 
+    ##      Ford Pantera L        Ferrari Dino       Maserati Bora          Volvo 142E 
+    ##         -2.24327970          0.43497663          1.91609010         -1.94355207
 
 ``` r
 error <- with(mtcars1, mpg-predict(lm1)) #y - yhat
@@ -396,55 +411,43 @@ RSS2.hands <- error^2 #squared (y - yhat)
 error
 ```
 
-    ##           Mazda RX4       Mazda RX4 Wag          Datsun 710 
-    ##         -1.57148162         -0.81167228         -2.25937258 
-    ##      Hornet 4 Drive   Hornet Sportabout             Valiant 
-    ##          0.32858059          0.47278581         -1.56647443 
-    ##          Duster 360           Merc 240D            Merc 230 
-    ##         -1.28080782          1.61268526         -1.75161045 
-    ##            Merc 280           Merc 280C          Merc 450SE 
-    ##         -0.79209083         -2.57618077          1.69086228 
-    ##          Merc 450SL         Merc 450SLC  Cadillac Fleetwood 
-    ##          0.97177457         -1.16501219         -0.41931533 
-    ## Lincoln Continental   Chrysler Imperial            Fiat 128 
-    ##          0.61569807          4.84505296          5.49956767 
-    ##         Honda Civic      Toyota Corolla       Toyota Corona 
-    ##         -0.43340728          4.88707571         -3.54044580 
-    ##    Dodge Challenger         AMC Javelin          Camaro Z28 
-    ##         -1.64290715         -3.25500565         -1.78246913 
-    ##    Pontiac Firebird           Fiat X1-9       Porsche 914-2 
-    ##          2.52199137         -0.40031087          0.05632667 
-    ##        Lotus Europa      Ford Pantera L        Ferrari Dino 
-    ##          3.58192825         -2.24327970          0.43497663 
-    ##       Maserati Bora          Volvo 142E 
-    ##          1.91609010         -1.94355207
+    ##           Mazda RX4       Mazda RX4 Wag          Datsun 710      Hornet 4 Drive 
+    ##         -1.57148162         -0.81167228         -2.25937258          0.32858059 
+    ##   Hornet Sportabout             Valiant          Duster 360           Merc 240D 
+    ##          0.47278581         -1.56647443         -1.28080782          1.61268526 
+    ##            Merc 230            Merc 280           Merc 280C          Merc 450SE 
+    ##         -1.75161045         -0.79209083         -2.57618077          1.69086228 
+    ##          Merc 450SL         Merc 450SLC  Cadillac Fleetwood Lincoln Continental 
+    ##          0.97177457         -1.16501219         -0.41931533          0.61569807 
+    ##   Chrysler Imperial            Fiat 128         Honda Civic      Toyota Corolla 
+    ##          4.84505296          5.49956767         -0.43340728          4.88707571 
+    ##       Toyota Corona    Dodge Challenger         AMC Javelin          Camaro Z28 
+    ##         -3.54044580         -1.64290715         -3.25500565         -1.78246913 
+    ##    Pontiac Firebird           Fiat X1-9       Porsche 914-2        Lotus Europa 
+    ##          2.52199137         -0.40031087          0.05632667          3.58192825 
+    ##      Ford Pantera L        Ferrari Dino       Maserati Bora          Volvo 142E 
+    ##         -2.24327970          0.43497663          1.91609010         -1.94355207
 
 ``` r
 RSS2.hands
 ```
 
-    ##           Mazda RX4       Mazda RX4 Wag          Datsun 710 
-    ##         2.469554490         0.658811884         5.104764436 
-    ##      Hornet 4 Drive   Hornet Sportabout             Valiant 
-    ##         0.107965201         0.223526423         2.453842125 
-    ##          Duster 360           Merc 240D            Merc 230 
-    ##         1.640468675         2.600753759         3.068139176 
-    ##            Merc 280           Merc 280C          Merc 450SE 
-    ##         0.627407885         6.636707370         2.859015236 
-    ##          Merc 450SL         Merc 450SLC  Cadillac Fleetwood 
-    ##         0.944345822         1.357253409         0.175825347 
-    ## Lincoln Continental   Chrysler Imperial            Fiat 128 
-    ##         0.379084112        23.474538211        30.245244529 
-    ##         Honda Civic      Toyota Corolla       Toyota Corona 
-    ##         0.187841869        23.883508982        12.534756429 
-    ##    Dodge Challenger         AMC Javelin          Camaro Z28 
-    ##         2.699143891        10.595061780         3.177196183 
-    ##    Pontiac Firebird           Fiat X1-9       Porsche 914-2 
-    ##         6.360440483         0.160248794         0.003172693 
-    ##        Lotus Europa      Ford Pantera L        Ferrari Dino 
-    ##        12.830209964         5.032303792         0.189204668 
-    ##       Maserati Bora          Volvo 142E 
-    ##         3.671401257         3.777394641
+    ##           Mazda RX4       Mazda RX4 Wag          Datsun 710      Hornet 4 Drive 
+    ##         2.469554490         0.658811884         5.104764436         0.107965201 
+    ##   Hornet Sportabout             Valiant          Duster 360           Merc 240D 
+    ##         0.223526423         2.453842125         1.640468675         2.600753759 
+    ##            Merc 230            Merc 280           Merc 280C          Merc 450SE 
+    ##         3.068139176         0.627407885         6.636707370         2.859015236 
+    ##          Merc 450SL         Merc 450SLC  Cadillac Fleetwood Lincoln Continental 
+    ##         0.944345822         1.357253409         0.175825347         0.379084112 
+    ##   Chrysler Imperial            Fiat 128         Honda Civic      Toyota Corolla 
+    ##        23.474538211        30.245244529         0.187841869        23.883508982 
+    ##       Toyota Corona    Dodge Challenger         AMC Javelin          Camaro Z28 
+    ##        12.534756429         2.699143891        10.595061780         3.177196183 
+    ##    Pontiac Firebird           Fiat X1-9       Porsche 914-2        Lotus Europa 
+    ##         6.360440483         0.160248794         0.003172693        12.830209964 
+    ##      Ford Pantera L        Ferrari Dino       Maserati Bora          Volvo 142E 
+    ##         5.032303792         0.189204668         3.671401257         3.777394641
 
 ``` r
 sum(RSS2.hands) #sum of squared (y - yhat)
@@ -487,20 +490,20 @@ Mean of Sum of Squared of Residuals
 vcov(lm1) #variance-covariance matrix
 ```
 
-    ##              (Intercept)          disp            hp         drat
-    ## (Intercept) 120.21434693 -3.913906e-02 -8.506173e-02 -9.183490623
-    ## disp         -0.03913906  1.251958e-04 -3.966522e-05  0.005149514
-    ## hp           -0.08506173 -3.966522e-05  2.335727e-04 -0.001643319
-    ## drat         -9.18349062  5.149514e-03 -1.643319e-03  1.714684098
-    ## wt            2.71740943 -9.730204e-03 -5.468125e-03  0.190251467
-    ## qsec         -4.15803471  1.616696e-03  4.675610e-03  0.081651900
-    ##                       wt         qsec
-    ## (Intercept)  2.717409426 -4.158034714
-    ## disp        -0.009730204  0.001616696
-    ## hp          -0.005468125  0.004675610
-    ## drat         0.190251467  0.081651900
-    ## wt           1.546123355 -0.298555891
-    ## qsec        -0.298555891  0.210997231
+    ##              (Intercept)          disp            hp         drat           wt
+    ## (Intercept) 120.21434693 -3.913906e-02 -8.506173e-02 -9.183490623  2.717409426
+    ## disp         -0.03913906  1.251958e-04 -3.966522e-05  0.005149514 -0.009730204
+    ## hp           -0.08506173 -3.966522e-05  2.335727e-04 -0.001643319 -0.005468125
+    ## drat         -9.18349062  5.149514e-03 -1.643319e-03  1.714684098  0.190251467
+    ## wt            2.71740943 -9.730204e-03 -5.468125e-03  0.190251467  1.546123355
+    ## qsec         -4.15803471  1.616696e-03  4.675610e-03  0.081651900 -0.298555891
+    ##                     qsec
+    ## (Intercept) -4.158034714
+    ## disp         0.001616696
+    ## hp           0.004675610
+    ## drat         0.081651900
+    ## wt          -0.298555891
+    ## qsec         0.210997231
 
 ``` r
 sqrt(diag(vcov(lm1))) #Std.Error for Beta hat
@@ -514,20 +517,20 @@ sqrt(diag(vcov(lm1))) #Std.Error for Beta hat
 solve(t(X) %*% X) #inverse of X'X 
 ```
 
-    ##             (Intercept)          disp            hp          drat
-    ## (Intercept) 18.37176829 -5.981430e-03 -1.299957e-02 -1.4034677733
-    ## disp        -0.00598143  1.913305e-05 -6.061841e-06  0.0007869750
-    ## hp          -0.01299957 -6.061841e-06  3.569577e-05 -0.0002511404
-    ## drat        -1.40346777  7.869750e-04 -2.511404e-04  0.2620467501
-    ## wt           0.41528834 -1.487019e-03 -8.356667e-04  0.0290751974
-    ## qsec        -0.63545203  2.470717e-04  7.145505e-04  0.0124784589
-    ##                        wt          qsec
-    ## (Intercept)  0.4152883379 -0.6354520259
-    ## disp        -0.0014870194  0.0002470717
-    ## hp          -0.0008356667  0.0007145505
-    ## drat         0.0290751974  0.0124784589
-    ## wt           0.2362864396 -0.0456268306
-    ## qsec        -0.0456268306  0.0322456707
+    ##             (Intercept)          disp            hp          drat            wt
+    ## (Intercept) 18.37176829 -5.981430e-03 -1.299957e-02 -1.4034677733  0.4152883379
+    ## disp        -0.00598143  1.913305e-05 -6.061841e-06  0.0007869750 -0.0014870194
+    ## hp          -0.01299957 -6.061841e-06  3.569577e-05 -0.0002511404 -0.0008356667
+    ## drat        -1.40346777  7.869750e-04 -2.511404e-04  0.2620467501  0.0290751974
+    ## wt           0.41528834 -1.487019e-03 -8.356667e-04  0.0290751974  0.2362864396
+    ## qsec        -0.63545203  2.470717e-04  7.145505e-04  0.0124784589 -0.0456268306
+    ##                      qsec
+    ## (Intercept) -0.6354520259
+    ## disp         0.0002470717
+    ## hp           0.0007145505
+    ## drat         0.0124784589
+    ## wt          -0.0456268306
+    ## qsec         0.0322456707
 
 ``` r
 anova(lm1)
@@ -564,20 +567,20 @@ MSE
 solve(t(X) %*% X)*MSE #variance-covariance
 ```
 
-    ##              (Intercept)          disp            hp         drat
-    ## (Intercept) 120.21434693 -3.913906e-02 -8.506173e-02 -9.183490623
-    ## disp         -0.03913906  1.251958e-04 -3.966522e-05  0.005149514
-    ## hp           -0.08506173 -3.966522e-05  2.335727e-04 -0.001643319
-    ## drat         -9.18349062  5.149514e-03 -1.643319e-03  1.714684098
-    ## wt            2.71740943 -9.730204e-03 -5.468125e-03  0.190251467
-    ## qsec         -4.15803471  1.616696e-03  4.675610e-03  0.081651900
-    ##                       wt         qsec
-    ## (Intercept)  2.717409426 -4.158034714
-    ## disp        -0.009730204  0.001616696
-    ## hp          -0.005468125  0.004675610
-    ## drat         0.190251467  0.081651900
-    ## wt           1.546123355 -0.298555891
-    ## qsec        -0.298555891  0.210997231
+    ##              (Intercept)          disp            hp         drat           wt
+    ## (Intercept) 120.21434693 -3.913906e-02 -8.506173e-02 -9.183490623  2.717409426
+    ## disp         -0.03913906  1.251958e-04 -3.966522e-05  0.005149514 -0.009730204
+    ## hp           -0.08506173 -3.966522e-05  2.335727e-04 -0.001643319 -0.005468125
+    ## drat         -9.18349062  5.149514e-03 -1.643319e-03  1.714684098  0.190251467
+    ## wt            2.71740943 -9.730204e-03 -5.468125e-03  0.190251467  1.546123355
+    ## qsec         -4.15803471  1.616696e-03  4.675610e-03  0.081651900 -0.298555891
+    ##                     qsec
+    ## (Intercept) -4.158034714
+    ## disp         0.001616696
+    ## hp           0.004675610
+    ## drat         0.081651900
+    ## wt          -0.298555891
+    ## qsec         0.210997231
 
 ``` r
 inv.XX <- solve(t(X) %*% X) #inverse of X'X
@@ -1054,9 +1057,9 @@ library(Matrix)
     ## 
     ## Attaching package: 'Matrix'
 
-    ## The following object is masked from 'package:tidyr':
+    ## The following objects are masked from 'package:tidyr':
     ## 
-    ##     expand
+    ##     expand, pack, unpack
 
 ``` r
 out.mtcars1 %>% dim

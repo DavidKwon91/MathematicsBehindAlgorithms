@@ -1,6 +1,5 @@
 ---
 title: "Linear Regression"
-author: "Yongbock (David) Kwon"
 output:
   github_document:
     pandoc_args: --webtex
@@ -299,10 +298,10 @@ pf(sum.lm1$fstatistic[1],sum.lm1$fstatistic[2],sum.lm1$fstatistic[3],lower.tail=
 Assumptions of Linear Regression
 =================
 
-1. Outliers
-2. Normality of Residuals
-3. Multicollinearity
-4. Homoscedasticity (Non-Constant Variance of Residuals)
+  1. Outliers
+  2. Normality of Residuals
+  3. Multicollinearity
+  4. Homoscedasticity (Non-Constant Variance of Residuals)
 
 
 1. Outliers
